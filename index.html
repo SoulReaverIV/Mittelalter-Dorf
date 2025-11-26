@@ -24,11 +24,15 @@
     <h2>Holzfällerlager</h2>
 
     Level: <span id="woodLevel">1</span><br>
-    Produktion pro Abschluss: <span id="woodPerHit">1</span> Holz
+    Produktion pro Abschluss: <span id="woodPerHit">1</span> Holz<br>
+    Kosten nächstes Level: <span id="woodLevelCost">–</span> Gold
 
     <!-- Fortschrittsanzeige -->
     <div class="progress-box">
       <div id="workBar"></div>
+    </div>
+    <div>
+      Nächste Lieferung in: <span id="timeToNext">–</span> s
     </div>
 
     <button onclick="upgradeWoodcutterLevel()">Level erhöhen</button>
