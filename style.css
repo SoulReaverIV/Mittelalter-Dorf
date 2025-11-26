@@ -1,45 +1,244 @@
+/* Globales Layout */
+* {
+  box-sizing: border-box;
+}
+
 body {
   font-family: Arial, sans-serif;
   background: #2b2b2b;
   color: #f0f0f0;
+  margin: 0;
   padding: 20px;
 }
 
-.panel {
-  background: #3a3a3a;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 10px;
-  max-width: 400px;
+.hidden {
+  display: none !important;
 }
 
-button {
+/* Startscreen */
+#startScreen {
+  background: #333;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 420px;
+  margin: 60px auto;
+  box-shadow: 0 0 12px rgba(0,0,0,0.5);
+}
+
+#startScreen h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+#startScreen input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  border: none;
+  background: #222;
+  color: #f0f0f0;
+}
+
+#startScreen button {
   width: 100%;
   padding: 10px;
-  margin-top: 8px;
+  border-radius: 4px;
   border: none;
+  cursor: pointer;
+  background: #4caf50;
+  color: #fff;
+  font-weight: bold;
+}
+
+#startScreen button:hover {
+  background: #61c162;
+}
+
+/* Header */
+#header {
+  margin-top: 20px;
+  padding: 10px 15px;
+  background: #1f1f1f;
   border-radius: 6px;
-  background: #6a8f3a;
-  color: white;
+  display: flex;
+  gap: 30px;
+  align-items: center;
+}
+
+/* Hauptbereich */
+#gameArea {
+  margin-top: 20px;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* LINKE SEITE: Ressourcen OBEN, Dashboard darunter */
+#leftSide {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Ressourcenpanel */
+#resourcesPanel {
+  background: #3a3a3a;
+  padding: 16px;
+  border-radius: 6px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.4);
+}
+
+#resourcesPanel strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* Dashboard */
+#dashboard {
+  background: #1f1f1f;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.6);
+}
+
+#dashboard h3 {
+  margin: 0 0 10px 0;
+  text-align: center;
+  font-size: 15px;
+}
+
+#dashboard button {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 9px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  background: #3a3a3a;
+  color: #fff;
   font-size: 14px;
+  text-align: left;
+}
+
+#dashboard button:hover {
+  background: #4a4a4a;
+}
+
+/* Rechte Seite */
+#mainPanels {
+  flex: 1;
+  max-width: 1100px;
+}
+
+/* Panels allgemein */
+.panel {
+  background: #3a3a3a;
+  padding: 16px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.4);
+}
+
+.panel strong {
+  font-size: 15px;
+}
+
+.detailPanel {
+  margin-top: 10px;
+}
+
+/* Produktionsübersicht */
+#overviewPanel {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+#overviewPanel h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* Holzfällerlager */
+#woodcutterPanel h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* Bauernhof */
+#farmPanel h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* Fortschrittsbalken */
+.progress {
+  width: 100%;
+  background: #555;
+  height: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.bar {
+  height: 100%;
+  width: 0%;
+  background: #4caf50;
+  transition: width 0.2s linear;
+}
+
+/* Buttons */
+button {
   cursor: pointer;
 }
 
-button:hover {
-  background: #7fb24a;
+.panel button {
+  margin-top: 6px;
+  margin-right: 6px;
+  padding: 7px 11px;
+  border-radius: 5px;
+  border: none;
+  background: #3949ab;
+  color: #fff;
+  font-size: 13px;
 }
 
-.progress-box {
-  width: 100%;
-  height: 16px;
-  background: #555;
-  border-radius: 8px;
-  margin: 10px 0;
-  overflow: hidden;
+.panel button:hover:enabled {
+  background: #5c6bc0;
 }
 
-#workBar {
-  height: 100%;
-  width: 0%;
-  background: #2ecc71;
+.panel button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Zusatzinfos */
+#woodBonusInfo {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.panel p {
+  margin: 6px 0;
+  font-size: 13px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  #gameArea {
+    flex-direction: column;
+  }
+
+  #leftSide {
+    width: 100%;
+  }
+
+  #mainPanels {
+    width: 100%;
+  }
 }

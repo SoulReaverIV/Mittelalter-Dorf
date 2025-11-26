@@ -1,58 +1,143 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>Mittelalterliches Aufbauspiel</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Dorfspiel Modular</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <h1>Dein Dorf – Holzfällerlager</h1>
-
-  <!-- Ressourcen -->
-  <div class="panel">
-    <strong>Ressourcen</strong><br>
-    Holz: <span id="wood">0</span> /
-    <span id="woodMax">1000</span><br>
-    Gold: <span id="gold">0</span><br>
-    Stein: <span id="stone">0</span><br>
-    Prestige: <span id="prestige">0</span>
+  <!-- Startscreen -->
+  <div id="startScreen">
+    <h2>Dorf gründen</h2>
+    <input id="villageNameInput" placeholder="Dorfname eingeben" />
+    <button onclick="startGame()">Starten</button>
   </div>
 
-  <!-- Holzfällerlager -->
-  <div class="panel">
-    <h2>Holzfällerlager</h2>
-
-    Level: <span id="woodLevel">1</span><br>
-    Produktion pro Abschluss: <span id="woodPerHit">1</span> Holz<br>
-    Kosten nächstes Level: <span id="woodLevelCost">–</span> Gold
-
-    <!-- Fortschrittsanzeige -->
-    <div class="progress-box">
-      <div id="workBar"></div>
-    </div>
-    <div>
-      Nächste Lieferung in: <span id="timeToNext">–</span> s
-    </div>
-
-    <button onclick="upgradeWoodcutterLevel()">Level erhöhen</button>
-
-    <h3>Upgrades</h3>
-
-    <button onclick="buyWoodcutterUpgrade('sharpAxe')">
-      🪓 Schärfere Axt (150 Gold)
-    </button>
-
-    <button onclick="buyWoodcutterUpgrade('secondWorker')">
-      👷 Zweiter Arbeiter (300 Gold)
-    </button>
-
-    <button onclick="buyWoodcutterUpgrade('mechanicalSaw')">
-      ⚙️ Mechanische Säge (1000 Gold)
-    </button>
-
+  <!-- Header -->
+  <div id="header" class="hidden">
+    <h1>Dorf: <span id="villageName"></span></h1>
+    <div>Prestige: <span id="prestige">0</span></div>
+    <div>Jahreszeit: <span id="seasonName"></span> (Wechsel in: <span id="seasonTimeLeft"></span>)</div>
   </div>
 
-  <script src="game.js"></script>
+  <!-- Spielbereich -->
+  <div id="gameArea" class="hidden">
+
+    <!-- Linke Seite -->
+    <div id="leftSide">
+
+      <!-- Ressourcen -->
+      <div id="resourcesPanel" class="panel">
+        <strong>Ressourcen</strong><br>
+        Holz: <span id="wood">0</span> / <span id="woodMax">1000</span><br>
+        Nahrung: <span id="food">0</span> / <span id="foodMax">500</span><br>
+        Gold: <span id="gold">0</span><br>
+        Stein: <span id="stone">0</span><br>
+        Bevölkerung: <span id="population">0</span> / <span id="populationCap">0</span>
+      </div>
+
+      <!-- Ansichten -->
+      <div id="dashboard" class="dashboard">
+        <h3>Ansichten</h3>
+        <button onclick="setView('overview')">📊 Übersicht</button>
+        <button onclick="setView('woodcutter')">🪓 Holzfällerlager</button>
+        <button onclick="setView('farm')">🌾 Bauernhof</button>
+      </div>
+
+    </div>
+
+    <!-- Rechte Seite -->
+    <div id="mainPanels">
+
+      <!-- Übersichtspanel -->
+      <div id="overviewPanel" class="panel detailPanel">
+        <h2>Produktionsübersicht</h2>
+
+        <p><strong>Produktion pro Sekunde:</strong></p>
+        Holz: <span id="ovWoodPerSecond">0</span><br>
+        Nahrung: <span id="ovFoodPerSecond">0</span><br>
+        Gold: <span id="ovGoldPerSecond">0</span><br>
+        Netto Nahrung: <span id="ovFoodNetPerSecond">0</span><br>
+
+        <p><strong>Lagerstand:</strong></p>
+        Holz: <span id="ovWood">0</span> / <span id="ovWoodMax">1000</span><br>
+        Nahrung: <span id="ovFood">0</span> / <span id="ovFoodMax">500</span><br>
+        Gold: <span id="ovGold">0</span><br>
+        Stein: <span id="ovStone">0</span><br>
+        Bevölkerung: <span id="ovPopulation">0</span> / <span id="ovPopulationCap">0</span>
+      </div>
+
+      <!-- Holzfäller -->
+      <div id="woodcutterPanel" class="panel detailPanel hidden">
+        <h2>Holzfällerlager</h2>
+
+        Level: <span id="woodLevel"></span><br>
+        Holz pro Abschluss: <span id="woodPerHit"></span><br>
+        Fortschritt/s: <span id="workSpeed"></span><br>
+        Holz/s: <span id="woodPerSecond"></span><br>
+
+        Zeit bis nächste Lieferung: <span id="timeToNext"></span>s
+
+        <div class="progress">
+          <div id="workBar" class="bar"></div>
+        </div>
+
+        <h3>Level-Up</h3>
+        Kosten: <span id="woodLevelCost"></span> Gold<br>
+        <button onclick="upgradeWoodcutterLevel()">Level erhöhen</button>
+
+        <h3>Upgrades</h3>
+        <button id="btnSharpAxe" onclick="buyWoodcutterUpgrade('sharpAxe')">
+          Scharfe Axt (150 Gold)
+        </button>
+        <button id="btnSecondWorker" onclick="buyWoodcutterUpgrade('secondWorker')">
+          Zweiter Arbeiter (300 Gold)
+        </button>
+        <button id="btnMechanicalSaw" onclick="buyWoodcutterUpgrade('mechanicalSaw')">
+          Mechanische Säge (1000 Gold)
+        </button>
+
+        <p>Aktive Boni: <span id="woodBonusInfo"></span></p>
+      </div>
+
+<!-- Bauernhof -->
+<div id="farmPanel" class="panel detailPanel hidden">
+  <h2>Bauernhof</h2>
+
+  Level: <span id="farmLevel"></span><br>
+  Nahrung pro Abschluss: <span id="farmPerHit"></span><br>
+  Fortschritt/s: <span id="farmWorkSpeed"></span><br>
+  Nahrung/s: <span id="farmFoodPerSecond"></span><br>
+
+  Zeit bis nächste Lieferung: <span id="farmTimeToNext"></span>s<br>
+  Saison-Multiplikator: <span id="farmSeasonMult"></span><br><br>
+
+  <!-- Fortschrittsbalken wie beim Holzfäller -->
+  <div class="progress">
+    <div id="farmBar" class="bar"></div>
+  </div>
+
+  <h3>Level-Up</h3>
+  Kosten: <span id="farmLevelCost"></span> Gold<br>
+  <button onclick="upgradeFarmLevel()">Level erhöhen</button>
+
+  <h3>Upgrades</h3>
+  <button id="btnFarmBetterPlow" onclick="buyFarmUpgrade('betterPlow')">
+    Besserer Pflug (200 Gold)
+  </button>
+  <button id="btnFarmBetterSeeds" onclick="buyFarmUpgrade('betterSeeds')">
+    Besseres Saatgut (350 Gold)
+  </button>
+  <button id="btnFarmSecondFarmer" onclick="buyFarmUpgrade('secondFarmer')">
+    Zweiter Bauer (800 Gold)
+  </button>
+</div>
+
+    </div>
+  </div>
+
+  <!-- Spiellogik -->
+  <script type="module" src="main.js"></script>
 </body>
 </html>
