@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Mittelalterliches Aufbauspiel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>Dein Dorf – Holzfällerlager</h1>
+
+  <!-- Ressourcen -->
+  <div class="panel">
+    <strong>Ressourcen</strong><br>
+    Holz: <span id="wood">0</span> /
+    <span id="woodMax">1000</span><br>
+    Gold: <span id="gold">0</span><br>
+    Stein: <span id="stone">0</span><br>
+    Prestige: <span id="prestige">0</span>
+  </div>
+
+  <!-- Holzfällerlager -->
+  <div class="panel">
+    <h2>Holzfällerlager</h2>
+
+    Level: <span id="woodLevel">1</span><br>
+    Produktion pro Abschluss: <span id="woodPerHit">1</span> Holz
+
+    <!-- Fortschrittsanzeige -->
+    <div class="progress-box">
+      <div id="workBar"></div>
+    </div>
+
+    <button onclick="upgradeWoodcutterLevel()">Level erhöhen</button>
+
+    <h3>Upgrades</h3>
+
+    <button onclick="buyWoodcutterUpgrade('sharpAxe')">
+      🪓 Schärfere Axt (150 Gold)
+    </button>
+
+    <button onclick="buyWoodcutterUpgrade('secondWorker')">
+      👷 Zweiter Arbeiter (300 Gold)
+    </button>
+
+    <button onclick="buyWoodcutterUpgrade('mechanicalSaw')">
+      ⚙️ Mechanische Säge (1000 Gold)
+    </button>
+
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
