@@ -1,7 +1,4 @@
-/* Globales Layout */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   font-family: Arial, sans-serif;
@@ -11,25 +8,20 @@ body {
   padding: 20px;
 }
 
-.hidden {
-  display: none !important;
-}
+.hidden { display: none !important; }
+.small { font-size: 12px; opacity: 0.8; margin-top: 6px; }
+.error { color: #ff8a80; font-size: 13px; margin-top: 8px; min-height: 18px; }
 
-/* Startscreen */
 #startScreen {
   background: #333;
   padding: 20px;
   border-radius: 8px;
   max-width: 420px;
   margin: 60px auto;
-  box-shadow: 0 0 12px rgba(0,0,0,0.5);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
 }
 
-#startScreen h2 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  text-align: center;
-}
+#startScreen h2 { margin-top: 0; margin-bottom: 15px; text-align: center; }
 
 #startScreen input {
   width: 100%;
@@ -52,11 +44,6 @@ body {
   font-weight: bold;
 }
 
-#startScreen button:hover {
-  background: #61c162;
-}
-
-/* Header */
 #header {
   margin-top: 20px;
   padding: 10px 15px;
@@ -65,9 +52,9 @@ body {
   display: flex;
   gap: 30px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
-/* Hauptbereich */
 #gameArea {
   margin-top: 20px;
   display: flex;
@@ -75,40 +62,27 @@ body {
   align-items: flex-start;
 }
 
-/* LINKE SEITE: Ressourcen OBEN, Dashboard darunter */
 #leftSide {
-  width: 260px;
+  width: 280px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-/* Ressourcenpanel */
-#resourcesPanel {
+#resourcesPanel,
+.panel {
   background: #3a3a3a;
   padding: 16px;
   border-radius: 6px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.4);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
 }
 
-#resourcesPanel strong {
-  display: block;
-  margin-bottom: 6px;
-}
-
-/* Dashboard */
 #dashboard {
   background: #1f1f1f;
   padding: 15px;
   border-radius: 8px;
-  box-shadow: 0 0 8px rgba(0,0,0,0.6);
-}
-
-#dashboard h3 {
-  margin: 0 0 10px 0;
-  text-align: center;
-  font-size: 15px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
 }
 
 #dashboard button {
@@ -124,65 +98,15 @@ body {
   text-align: left;
 }
 
-#dashboard button:hover {
-  background: #4a4a4a;
-}
+#mainPanels { flex: 1; max-width: 1100px; }
 
-/* Rechte Seite */
-#mainPanels {
-  flex: 1;
-  max-width: 1100px;
-}
-
-/* Panels allgemein */
-.panel {
-  background: #3a3a3a;
-  padding: 16px;
-  border-radius: 6px;
-  margin-bottom: 15px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.4);
-}
-
-.panel strong {
-  font-size: 15px;
-}
-
-.detailPanel {
-  margin-top: 10px;
-}
-
-/* Produktionsübersicht */
-#overviewPanel {
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-#overviewPanel h2 {
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-/* Holzfällerlager */
-#woodcutterPanel h2 {
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-/* Bauernhof */
-#farmPanel h2 {
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-/* Fortschrittsbalken */
 .progress {
   width: 100%;
   background: #555;
   height: 10px;
   border-radius: 4px;
   overflow: hidden;
-  margin-top: 5px;
-  margin-bottom: 10px;
+  margin: 6px 0 10px;
 }
 
 .bar {
@@ -192,12 +116,10 @@ body {
   transition: width 0.2s linear;
 }
 
-/* Buttons */
+.bar.prestige { background: #f2c94c; }
+
 button {
   cursor: pointer;
-}
-
-.panel button {
   margin-top: 6px;
   margin-right: 6px;
   padding: 7px 11px;
@@ -208,37 +130,37 @@ button {
   font-size: 13px;
 }
 
-.panel button:hover:enabled {
-  background: #5c6bc0;
+button:hover:enabled { background: #5c6bc0; }
+button:disabled { opacity: 0.5; cursor: default; }
+
+.marketRow,
+.questItem {
+  border-top: 1px solid #555;
+  padding: 10px 0;
 }
 
-.panel button:disabled {
-  opacity: 0.5;
-  cursor: default;
+.marketRow:first-of-type,
+.questItem:first-of-type {
+  border-top: none;
+  padding-top: 0;
 }
 
-/* Zusatzinfos */
-#woodBonusInfo {
-  font-size: 12px;
-  opacity: 0.9;
-}
+.marketRow div { margin-top: 6px; }
 
-.panel p {
+.workerRow {
   margin: 6px 0;
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* Responsive */
+.workerRow button {
+  margin-top: 0;
+  padding: 4px 9px;
+}
+
 @media (max-width: 900px) {
-  #gameArea {
-    flex-direction: column;
-  }
-
-  #leftSide {
-    width: 100%;
-  }
-
-  #mainPanels {
-    width: 100%;
-  }
+  #gameArea { flex-direction: column; }
+  #leftSide,
+  #mainPanels { width: 100%; max-width: none; }
 }
