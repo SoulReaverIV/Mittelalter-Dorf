@@ -3,6 +3,7 @@ import {
   PRESTIGE_WEALTH_TARGET,
   SAVE_INTERVAL_MS,
   SAVE_KEY,
+  SAVE_KEY_LEGACY,
   SEASON_DURATION,
   TICKRATE,
 } from "./constants.js";
@@ -60,7 +61,7 @@ import {
   tickWoodcutter,
   upgradeWoodcutterLevel as upgradeWoodcutterLevelImpl,
 } from "./woodcutter.js";
-import { claimQuestReward, QUESTS, updateQuestProgress } from "./quests.js";
+import { claimQuestReward as claimQuestRewardImpl, QUESTS, updateQuestProgress } from "./quests.js";
 import { getActiveEvent, tickEvents } from "./events.js";
 
 function startGame() {
@@ -75,6 +76,7 @@ function startGame() {
 
   if (errorEl) errorEl.textContent = "";
   gameState.villageName = name;
+  if (gameState.world) gameState.world.offlineSummary = gameState.world.offlineSummary || "";
 
   document.getElementById("startScreen").classList.add("hidden");
   document.getElementById("header").classList.remove("hidden");
@@ -126,6 +128,7 @@ function tickSeason(dt) {
 function saveGame() {
   gameState.meta.lastSavedAt = Date.now();
   localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+  localStorage.removeItem(SAVE_KEY_LEGACY);
 }
 
 function simulateOfflineProgress(seconds) {
@@ -153,7 +156,7 @@ function simulateOfflineProgress(seconds) {
 }
 
 function loadGame() {
-  const raw = localStorage.getItem(SAVE_KEY);
+  const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(SAVE_KEY_LEGACY);
   if (!raw) return;
 
   try {
@@ -311,7 +314,7 @@ function renderQuests() {
       const btn = document.createElement("button");
       btn.textContent = "Belohnung abholen";
       btn.onclick = () => {
-        claimQuestReward(q.id);
+        claimQuestRewardImpl(q.id);
         updateUI();
       };
       item.appendChild(document.createElement("br"));
@@ -388,9 +391,7 @@ function updateUI() {
   const activeEvent = getActiveEvent();
   set("eventInfo", activeEvent ? `${activeEvent.name}: ${activeEvent.description}` : "Kein Ereignis aktiv");
 
-  if (gameState.world.offlineSummary) {
-    set("offlineInfo", gameState.world.offlineSummary);
-  }
+  set("offlineInfo", gameState.world.offlineSummary || "");
 
   const w = gameState.buildings.woodcutter;
   set("woodLevel", w.level);
@@ -521,7 +522,7 @@ window.toggleAutoSell = (resourceKey) => {
 };
 window.doPrestigeReset = doPrestigeReset;
 window.claimQuestReward = (id) => {
-  claimQuestReward(id);
+  claimQuestRewardImpl(id);
   updateUI();
 };
 window.manualSave = () => {

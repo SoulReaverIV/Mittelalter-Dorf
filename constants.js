@@ -27,6 +27,7 @@ export const POP_GROWTH_SECONDS = 45;
 export const PRESTIGE_WEALTH_TARGET = 12000;
 
 export const SAVE_KEY = "mittelalter_dorf_save_v3";
+export const SAVE_KEY_LEGACY = "mittelalter_dorf_save_v2";
 export const OFFLINE_MAX_SECONDS = 8 * 60 * 60;
 
 export const EVENT_MIN_INTERVAL = 60;
