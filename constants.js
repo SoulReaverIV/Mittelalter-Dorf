@@ -44,6 +44,7 @@ export const BASE_FARM_WORK_SPEED = 0.25;
 
 export const BASE_STORAGE_WOOD = 1000;
 export const BASE_STORAGE_FOOD = 500;
+export const BASE_STORAGE_STONE = 300;
 
 // ===============================
 // Bevölkerung

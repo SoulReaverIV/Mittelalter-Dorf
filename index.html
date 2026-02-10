@@ -6,51 +6,39 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <!-- Startscreen -->
   <div id="startScreen">
     <h2>Dorf gründen</h2>
     <input id="villageNameInput" placeholder="Dorfname eingeben" />
     <button onclick="startGame()">Starten</button>
   </div>
 
-  <!-- Header -->
   <div id="header" class="hidden">
     <h1>Dorf: <span id="villageName"></span></h1>
     <div>Prestige: <span id="prestige">0</span></div>
     <div>Jahreszeit: <span id="seasonName"></span> (Wechsel in: <span id="seasonTimeLeft"></span>)</div>
   </div>
 
-  <!-- Spielbereich -->
   <div id="gameArea" class="hidden">
-
-    <!-- Linke Seite -->
     <div id="leftSide">
-
-      <!-- Ressourcen -->
       <div id="resourcesPanel" class="panel">
         <strong>Ressourcen</strong><br>
         Holz: <span id="wood">0</span> / <span id="woodMax">1000</span><br>
         Nahrung: <span id="food">0</span> / <span id="foodMax">500</span><br>
+        Stein: <span id="stone">0</span> / <span id="stoneMax">300</span><br>
         Gold: <span id="gold">0</span><br>
-        Stein: <span id="stone">0</span><br>
         Bevölkerung: <span id="population">0</span> / <span id="populationCap">0</span>
       </div>
 
-      <!-- Ansichten -->
       <div id="dashboard" class="dashboard">
         <h3>Ansichten</h3>
         <button onclick="setView('overview')">📊 Übersicht</button>
         <button onclick="setView('woodcutter')">🪓 Holzfällerlager</button>
         <button onclick="setView('farm')">🌾 Bauernhof</button>
+        <button onclick="setView('market')">🪙 Markt</button>
       </div>
-
     </div>
 
-    <!-- Rechte Seite -->
     <div id="mainPanels">
-
-      <!-- Übersichtspanel -->
       <div id="overviewPanel" class="panel detailPanel">
         <h2>Produktionsübersicht</h2>
 
@@ -63,12 +51,11 @@
         <p><strong>Lagerstand:</strong></p>
         Holz: <span id="ovWood">0</span> / <span id="ovWoodMax">1000</span><br>
         Nahrung: <span id="ovFood">0</span> / <span id="ovFoodMax">500</span><br>
+        Stein: <span id="ovStone">0</span> / <span id="ovStoneMax">300</span><br>
         Gold: <span id="ovGold">0</span><br>
-        Stein: <span id="ovStone">0</span><br>
         Bevölkerung: <span id="ovPopulation">0</span> / <span id="ovPopulationCap">0</span>
       </div>
 
-      <!-- Holzfäller -->
       <div id="woodcutterPanel" class="panel detailPanel hidden">
         <h2>Holzfällerlager</h2>
 
@@ -85,6 +72,7 @@
 
         <h3>Level-Up</h3>
         Kosten: <span id="woodLevelCost"></span> Gold<br>
+        Effekt: <span id="woodLevelImpact"></span><br>
         <button onclick="upgradeWoodcutterLevel()">Level erhöhen</button>
 
         <h3>Upgrades</h3>
@@ -101,43 +89,72 @@
         <p>Aktive Boni: <span id="woodBonusInfo"></span></p>
       </div>
 
-<!-- Bauernhof -->
-<div id="farmPanel" class="panel detailPanel hidden">
-  <h2>Bauernhof</h2>
+      <div id="farmPanel" class="panel detailPanel hidden">
+        <h2>Bauernhof</h2>
 
-  Level: <span id="farmLevel"></span><br>
-  Nahrung pro Abschluss: <span id="farmPerHit"></span><br>
-  Fortschritt/s: <span id="farmWorkSpeed"></span><br>
-  Nahrung/s: <span id="farmFoodPerSecond"></span><br>
+        Level: <span id="farmLevel"></span><br>
+        Nahrung pro Abschluss: <span id="farmPerHit"></span><br>
+        Fortschritt/s: <span id="farmWorkSpeed"></span><br>
+        Nahrung/s: <span id="farmFoodPerSecond"></span><br>
 
-  Zeit bis nächste Lieferung: <span id="farmTimeToNext"></span>s<br>
-  Saison-Multiplikator: <span id="farmSeasonMult"></span><br><br>
+        Zeit bis nächste Lieferung: <span id="farmTimeToNext"></span>s<br>
+        Saison-Multiplikator: <span id="farmSeasonMult"></span><br><br>
 
-  <!-- Fortschrittsbalken wie beim Holzfäller -->
-  <div class="progress">
-    <div id="farmBar" class="bar"></div>
-  </div>
+        <div class="progress">
+          <div id="farmBar" class="bar"></div>
+        </div>
 
-  <h3>Level-Up</h3>
-  Kosten: <span id="farmLevelCost"></span> Gold<br>
-  <button onclick="upgradeFarmLevel()">Level erhöhen</button>
+        <h3>Level-Up</h3>
+        Kosten: <span id="farmLevelCost"></span> Gold<br>
+        Effekt: <span id="farmLevelImpact"></span><br>
+        <button onclick="upgradeFarmLevel()">Level erhöhen</button>
 
-  <h3>Upgrades</h3>
-  <button id="btnFarmBetterPlow" onclick="buyFarmUpgrade('betterPlow')">
-    Besserer Pflug (200 Gold)
-  </button>
-  <button id="btnFarmBetterSeeds" onclick="buyFarmUpgrade('betterSeeds')">
-    Besseres Saatgut (350 Gold)
-  </button>
-  <button id="btnFarmSecondFarmer" onclick="buyFarmUpgrade('secondFarmer')">
-    Zweiter Bauer (800 Gold)
-  </button>
-</div>
+        <h3>Upgrades</h3>
+        <button id="btnFarmBetterPlow" onclick="buyFarmUpgrade('betterPlow')">
+          Besserer Pflug (200 Gold)
+        </button>
+        <button id="btnFarmBetterSeeds" onclick="buyFarmUpgrade('betterSeeds')">
+          Besseres Saatgut (350 Gold)
+        </button>
+        <button id="btnFarmSecondFarmer" onclick="buyFarmUpgrade('secondFarmer')">
+          Zweiter Bauer (800 Gold)
+        </button>
+      </div>
 
+      <div id="marketPanel" class="panel detailPanel hidden">
+        <h2>Markt</h2>
+        <p>Verkaufe Ressourcen gegen Gold.</p>
+
+        <div class="marketRow">
+          <strong>Holz</strong> (<span id="priceWood">0,5 Gold</span>)
+          <div>
+            <button onclick="sellResource('wood', 10)">10 verkaufen</button>
+            <button onclick="sellResource('wood', 100)">100 verkaufen</button>
+            <button onclick="sellResource('wood', 'all')">Alles verkaufen</button>
+          </div>
+        </div>
+
+        <div class="marketRow">
+          <strong>Nahrung</strong> (<span id="priceFood">0,3 Gold</span>)
+          <div>
+            <button onclick="sellResource('food', 10)">10 verkaufen</button>
+            <button onclick="sellResource('food', 100)">100 verkaufen</button>
+            <button onclick="sellResource('food', 'all')">Alles verkaufen</button>
+          </div>
+        </div>
+
+        <div class="marketRow">
+          <strong>Stein</strong> (<span id="priceStone">1,0 Gold</span>)
+          <div>
+            <button onclick="sellResource('stone', 10)">10 verkaufen</button>
+            <button onclick="sellResource('stone', 100)">100 verkaufen</button>
+            <button onclick="sellResource('stone', 'all')">Alles verkaufen</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Spiellogik -->
   <script type="module" src="main.js"></script>
 </body>
 </html>
