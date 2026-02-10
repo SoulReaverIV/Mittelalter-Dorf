@@ -6,11 +6,8 @@ import {
   SEASON_DURATION,
   BASE_STORAGE_WOOD,
   BASE_STORAGE_FOOD,
+  BASE_STORAGE_STONE,
 } from "./constants.js";
-
-// ===============================
-// ANFANGS-ZUSTAND
-// ===============================
 
 export const gameState = {
   villageName: "",
@@ -26,23 +23,21 @@ export const gameState = {
 
     woodStorageMax: BASE_STORAGE_WOOD,
     foodStorageMax: BASE_STORAGE_FOOD,
+    stoneStorageMax: BASE_STORAGE_STONE,
   },
 
-  // Jahreszeit / Zeitsteuerung
   season: {
-    index: 0,            // 0 = Frühling, 1 = Sommer, 2 = Herbst, 3 = Winter
-    secondsInSeason: 0,  // wie viele Sekunden sind in der aktuellen Season vergangen
+    index: 0,
+    secondsInSeason: 0,
     duration: SEASON_DURATION,
   },
 
-  // Hungersystem
   starvationCounter: 0,
 
-  // Gebäude / Produktionsketten
   buildings: {
     woodcutter: {
       level: 1,
-      workProgress: 0, // 0–1 → ein „Abschluss“
+      workProgress: 0,
       upgrades: {
         sharpAxe: false,
         secondWorker: false,
@@ -62,10 +57,6 @@ export const gameState = {
   },
 };
 
-// ===============================
-// LEVEL-KONFIGURATIONEN
-// ===============================
-
 export const woodcutterLevels = {
   1: { baseProduction: 10, goldCost: 0 },
   2: { baseProduction: 18, goldCost: 150 },
@@ -82,5 +73,4 @@ export const farmLevels = {
   5: { baseProduction: 55, goldCost: 2000 },
 };
 
-// Export Seasons (optional, falls woanders gebraucht)
 export { seasons, SEASON_DURATION };
