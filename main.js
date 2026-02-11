@@ -41,6 +41,7 @@ import {
 } from "./quarry.js";
 import {
   BASE_MARKET_PRICES,
+  MARKET_PRICES,
   getCurrentPrice,
   getGoldPerSecond,
   sellResource,
@@ -469,9 +470,10 @@ function updateUI() {
   set("autoWood", gameState.market.autoSell.wood ? "AN" : "AUS");
   set("autoFood", gameState.market.autoSell.food ? "AN" : "AUS");
   set("autoStone", gameState.market.autoSell.stone ? "AN" : "AUS");
-  set("basePriceWood", BASE_MARKET_PRICES.wood.toFixed(2));
-  set("basePriceFood", BASE_MARKET_PRICES.food.toFixed(2));
-  set("basePriceStone", BASE_MARKET_PRICES.stone.toFixed(2));
+  const basePrices = MARKET_PRICES || BASE_MARKET_PRICES;
+  set("basePriceWood", basePrices.wood.toFixed(2));
+  set("basePriceFood", basePrices.food.toFixed(2));
+  set("basePriceStone", basePrices.stone.toFixed(2));
 
   set("workersAssigned", getAssignedWorkers());
   set("workersFree", getFreeVillagers());

@@ -121,4 +121,7 @@ export function createInitialState() {
 
 export const gameState = createInitialState();
 
+// Legacy Alias für ältere Branches/Imports
+export const initialGameState = createInitialState;
+
 export { seasons, SEASON_DURATION };

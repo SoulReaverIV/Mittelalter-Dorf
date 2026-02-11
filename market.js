@@ -7,6 +7,9 @@ export const BASE_MARKET_PRICES = {
   stone: 1.0,
 };
 
+// Legacy Alias für ältere Branches/Imports
+export const MARKET_PRICES = BASE_MARKET_PRICES;
+
 function getDemandModifier(resourceKey) {
   const sold = gameState.meta.lastTickSoldGold;
   const pressure = Math.min(0.15, sold / 4000);
