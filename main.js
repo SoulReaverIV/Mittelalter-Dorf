@@ -130,6 +130,10 @@ function asObject(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
+function mergeObject(baseObj, maybeObj) {
+  return { ...baseObj, ...asObject(maybeObj) };
+}
+
 function saveGame() {
   gameState.meta.lastSavedAt = Date.now();
   localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
@@ -169,62 +173,43 @@ function loadGame() {
     const base = createInitialState();
 
     Object.assign(gameState, base, parsed);
-    gameState.resources = { ...base.resources, ...asObject(parsed.resources) };
-    gameState.villagers = { ...base.villagers, ...asObject(parsed.villagers) };
-    gameState.season = { ...base.season, ...asObject(parsed.season) };
-    gameState.meta = { ...base.meta, ...asObject(parsed.meta) };
-    gameState.market = {
-      ...base.market,
-      ...asObject(parsed.market),
-      autoSell: {
-        ...base.market.autoSell,
-        ...(asObject(parsed.market).autoSell || {}),
-      },
-    };
-    gameState.labor = { ...base.labor, ...asObject(parsed.labor) };
-    gameState.world = { ...base.world, ...asObject(parsed.world) };
-    gameState.quests = {
-      ...base.quests,
-      ...asObject(parsed.quests),
-      completed: {
-        ...base.quests.completed,
-        ...(asObject(parsed.quests).completed || {}),
-      },
-      rewardClaimed: {
-        ...base.quests.rewardClaimed,
-        ...(asObject(parsed.quests).rewardClaimed || {}),
-      },
-    };
+    gameState.resources = mergeObject(base.resources, parsed.resources);
+    gameState.villagers = mergeObject(base.villagers, parsed.villagers);
+    gameState.season = mergeObject(base.season, parsed.season);
+    gameState.meta = mergeObject(base.meta, parsed.meta);
+    gameState.market = mergeObject(base.market, parsed.market);
+    gameState.market.autoSell = mergeObject(base.market.autoSell, asObject(parsed.market).autoSell);
+    gameState.labor = mergeObject(base.labor, parsed.labor);
+    gameState.world = mergeObject(base.world, parsed.world);
+    gameState.quests = mergeObject(base.quests, parsed.quests);
+    gameState.quests.completed = mergeObject(base.quests.completed, asObject(parsed.quests).completed);
+    gameState.quests.rewardClaimed = mergeObject(base.quests.rewardClaimed, asObject(parsed.quests).rewardClaimed);
+    gameState.buildings = mergeObject(base.buildings, parsed.buildings);
     gameState.buildings = {
-      ...base.buildings,
-      ...asObject(parsed.buildings),
+      ...gameState.buildings,
       woodcutter: {
-        ...base.buildings.woodcutter,
-        ...(asObject(parsed.buildings).woodcutter || {}),
+        ...mergeObject(base.buildings.woodcutter, asObject(parsed.buildings).woodcutter),
         upgrades: {
           ...base.buildings.woodcutter.upgrades,
           ...((asObject(parsed.buildings).woodcutter || {}).upgrades || {}),
         },
       },
       farm: {
-        ...base.buildings.farm,
-        ...(asObject(parsed.buildings).farm || {}),
+        ...mergeObject(base.buildings.farm, asObject(parsed.buildings).farm),
         upgrades: {
           ...base.buildings.farm.upgrades,
           ...((asObject(parsed.buildings).farm || {}).upgrades || {}),
         },
       },
       quarry: {
-        ...base.buildings.quarry,
-        ...(asObject(parsed.buildings).quarry || {}),
+        ...mergeObject(base.buildings.quarry, asObject(parsed.buildings).quarry),
         upgrades: {
           ...base.buildings.quarry.upgrades,
           ...((asObject(parsed.buildings).quarry || {}).upgrades || {}),
         },
       },
       housing: {
-        ...base.buildings.housing,
-        ...(asObject(parsed.buildings).housing || {}),
+        ...mergeObject(base.buildings.housing, asObject(parsed.buildings).housing),
         upgrades: {
           ...base.buildings.housing.upgrades,
           ...((asObject(parsed.buildings).housing || {}).upgrades || {}),
@@ -490,6 +475,7 @@ function updateUI() {
   set("statusNotes", notes.join(" | "));
 
   renderQuests();
+
 }
 
 function gameTick(dt) {

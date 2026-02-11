@@ -41,6 +41,7 @@ export const housingLevels = {
   5: { popCap: 130, goldCost: 2800, woodCost: 1300, stoneCost: 500 },
 };
 
+// Zustand-Erzeuger für neues Spiel / Save-Migration
 export function createInitialState() {
   return {
     villageName: "",

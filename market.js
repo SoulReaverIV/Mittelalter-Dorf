@@ -54,7 +54,7 @@ export function sellResource(resourceKey, amount) {
 }
 
 export function tickMarket() {
-  const m = gameState.market.autoSell;
+  const m = (gameState.market && gameState.market.autoSell) || { wood: false, food: false, stone: false };
   if (m.wood) sellResource("wood", 10);
   if (m.food) {
     const foodThreshold = gameState.resources.foodStorageMax * 0.65;
