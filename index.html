@@ -9,7 +9,7 @@
   <div id="startScreen">
     <h2>Dorf gründen</h2>
     <input id="villageNameInput" placeholder="Dorfname eingeben" />
-    <button onclick="startGame()">Starten</button>
+    <button id="startButton" type="button" onclick="if (window.startGame) window.startGame();">Starten</button>
     <div id="startError" class="error"></div>
   </div>
 
@@ -200,6 +200,8 @@
     </div>
   </div>
 
+
+  <script src="bootstrap.js" defer></script>
   <script type="module" src="main.js"></script>
 </body>
 </html>
