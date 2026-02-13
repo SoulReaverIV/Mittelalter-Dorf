@@ -9,7 +9,7 @@
   <div id="startScreen">
     <h2>Dorf gründen</h2>
     <input id="villageNameInput" placeholder="Dorfname eingeben" />
-    <button onclick="startGame()">Starten</button>
+    <button id="startButton" type="button" onclick="window.startGame && window.startGame()">Starten</button>
     <div id="startError" class="error"></div>
   </div>
 
@@ -199,6 +199,32 @@
       </div>
     </div>
   </div>
+
+  <script>
+    (function setupStartFallback() {
+      const btn = document.getElementById("startButton");
+      const input = document.getElementById("villageNameInput");
+      const error = document.getElementById("startError");
+
+      function runStart() {
+        if (typeof window.startGame === "function") {
+          window.startGame();
+          return;
+        }
+
+        if (error) {
+          error.textContent = "Spielskript noch nicht geladen. Bitte Seite mit Strg+F5 neu laden.";
+        }
+      }
+
+      if (btn) btn.addEventListener("click", runStart);
+      if (input) {
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") runStart();
+        });
+      }
+    })();
+  </script>
 
   <script type="module" src="main.js"></script>
 </body>

@@ -16,6 +16,7 @@ export const BASE_STORAGE_FOOD = 500;
 export const BASE_STORAGE_STONE = 300;
 
 export const BASE_WOOD_WORK_SPEED = 0.25;
+export const BASE_FARM_PER_COMPLETION = 8;
 export const BASE_FARM_WORK_SPEED = 0.25;
 export const BASE_QUARRY_WORK_SPEED = 0.2;
 
