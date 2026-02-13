@@ -86,6 +86,23 @@ function startGame() {
   setView("overview");
 }
 
+function setupStartScreenBindings() {
+  const btn = document.getElementById("startButton");
+  const input = document.getElementById("villageNameInput");
+
+  if (btn && !btn.dataset.bound) {
+    btn.addEventListener("click", startGame);
+    btn.dataset.bound = "1";
+  }
+
+  if (input && !input.dataset.bound) {
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") startGame();
+    });
+    input.dataset.bound = "1";
+  }
+}
+
 function setView(viewName) {
   const allowed = [
     "overview",
@@ -484,6 +501,7 @@ window.toggleAutoSell = (resourceKey) => {
 };
 
 
+setupStartScreenBindings();
 loadGame();
 updateQuestProgress();
 updateUI();
