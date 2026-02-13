@@ -86,20 +86,20 @@ function startGame() {
   setView("overview");
 }
 
-function setupMainStartBindings() {
+function setupStartScreenBindings() {
   const btn = document.getElementById("startButton");
   const input = document.getElementById("villageNameInput");
 
-  if (btn && !btn.dataset.mainBound) {
+  if (btn && !btn.dataset.bound) {
     btn.addEventListener("click", startGame);
-    btn.dataset.mainBound = "1";
+    btn.dataset.bound = "1";
   }
 
-  if (input && !input.dataset.mainBound) {
+  if (input && !input.dataset.bound) {
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") startGame();
     });
-    input.dataset.mainBound = "1";
+    input.dataset.bound = "1";
   }
 }
 
@@ -501,7 +501,7 @@ window.toggleAutoSell = (resourceKey) => {
 };
 
 
-setupMainStartBindings();
+setupStartScreenBindings();
 loadGame();
 updateQuestProgress();
 updateUI();
