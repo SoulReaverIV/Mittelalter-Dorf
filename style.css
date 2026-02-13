@@ -164,3 +164,18 @@ button:disabled { opacity: 0.5; cursor: default; }
   #leftSide,
   #mainPanels { width: 100%; max-width: none; }
 }
+
+
+.marketRow {
+  border-top: 1px solid #555;
+  padding: 10px 0;
+}
+
+.marketRow:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.marketRow div {
+  margin-top: 6px;
+}
