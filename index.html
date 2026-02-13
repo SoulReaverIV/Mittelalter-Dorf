@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>Dorfspiel Modular</title>
+  <title>Mittelalter-Dorf</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -10,6 +10,7 @@
     <h2>Dorf gründen</h2>
     <input id="villageNameInput" placeholder="Dorfname eingeben" />
     <button onclick="startGame()">Starten</button>
+    <div id="startError" class="error"></div>
   </div>
 
   <div id="header" class="hidden">
@@ -26,7 +27,9 @@
         Nahrung: <span id="food">0</span> / <span id="foodMax">500</span><br>
         Stein: <span id="stone">0</span> / <span id="stoneMax">300</span><br>
         Gold: <span id="gold">0</span><br>
-        Bevölkerung: <span id="population">0</span> / <span id="populationCap">0</span>
+        Bevölkerung: <span id="population">0</span> / <span id="populationCap">0</span><br>
+        Zufriedenheit: <span id="villagerHappiness">0%</span><br>
+        Gesundheit: <span id="villagerHealth">0%</span>
       </div>
 
       <div id="dashboard" class="dashboard">
@@ -34,123 +37,165 @@
         <button onclick="setView('overview')">📊 Übersicht</button>
         <button onclick="setView('woodcutter')">🪓 Holzfällerlager</button>
         <button onclick="setView('farm')">🌾 Bauernhof</button>
+        <button onclick="setView('quarry')">⛏️ Steinbruch</button>
+        <button onclick="setView('housing')">🏠 Wohnhäuser</button>
         <button onclick="setView('market')">🪙 Markt</button>
+        <button onclick="setView('quests')">📜 Quests</button>
       </div>
     </div>
 
     <div id="mainPanels">
       <div id="overviewPanel" class="panel detailPanel">
         <h2>Produktionsübersicht</h2>
+        Holz/s: <span id="ovWoodPerSecond">0</span><br>
+        Nahrung/s: <span id="ovFoodPerSecond">0</span><br>
+        Stein/s: <span id="ovStonePerSecond">0</span><br>
+        Gold/s: <span id="ovGoldPerSecond">0</span><br>
+        Netto Nahrung/s: <span id="ovFoodNetPerSecond">0</span><br><br>
 
-        <p><strong>Produktion pro Sekunde:</strong></p>
-        Holz: <span id="ovWoodPerSecond">0</span><br>
-        Nahrung: <span id="ovFoodPerSecond">0</span><br>
-        Gold: <span id="ovGoldPerSecond">0</span><br>
-        Netto Nahrung: <span id="ovFoodNetPerSecond">0</span><br>
-
-        <p><strong>Lagerstand:</strong></p>
-        Holz: <span id="ovWood">0</span> / <span id="ovWoodMax">1000</span><br>
-        Nahrung: <span id="ovFood">0</span> / <span id="ovFoodMax">500</span><br>
-        Stein: <span id="ovStone">0</span> / <span id="ovStoneMax">300</span><br>
+        Holz: <span id="ovWood">0</span> / <span id="ovWoodMax">0</span><br>
+        Nahrung: <span id="ovFood">0</span> / <span id="ovFoodMax">0</span><br>
+        Stein: <span id="ovStone">0</span> / <span id="ovStoneMax">0</span><br>
         Gold: <span id="ovGold">0</span><br>
-        Bevölkerung: <span id="ovPopulation">0</span> / <span id="ovPopulationCap">0</span>
+        Bevölkerung: <span id="ovPopulation">0</span> / <span id="ovPopulationCap">0</span><br>
+
+        <h3>Weltstatus</h3>
+        <p id="eventInfo">Kein Ereignis aktiv</p>
+        <p id="offlineInfo" class="small"></p>
+
+        <h3>Prestige</h3>
+        Wohlstand: <span id="ovWealth">0</span> / <span id="ovPrestigeTarget">0</span>
+        <div class="progress"><div id="prestigeProgressBar" class="bar prestige"></div></div>
+        <button id="btnPrestigeReset" onclick="doPrestigeReset()">Prestige-Reset durchführen</button>
+
+        <p id="statusNotes"></p>
+        <button onclick="manualSave()">Spiel speichern</button>
+        <div id="saveInfo" class="small"></div>
       </div>
 
       <div id="woodcutterPanel" class="panel detailPanel hidden">
         <h2>Holzfällerlager</h2>
-
         Level: <span id="woodLevel"></span><br>
         Holz pro Abschluss: <span id="woodPerHit"></span><br>
         Fortschritt/s: <span id="workSpeed"></span><br>
         Holz/s: <span id="woodPerSecond"></span><br>
-
-        Zeit bis nächste Lieferung: <span id="timeToNext"></span>s
-
-        <div class="progress">
-          <div id="workBar" class="bar"></div>
-        </div>
-
-        <h3>Level-Up</h3>
-        Kosten: <span id="woodLevelCost"></span> Gold<br>
+        <div class="progress"><div id="workBar" class="bar"></div></div>
+        Kosten nächstes Level: <span id="woodLevelCost"></span> Gold<br>
         Effekt: <span id="woodLevelImpact"></span><br>
         <button onclick="upgradeWoodcutterLevel()">Level erhöhen</button>
-
         <h3>Upgrades</h3>
-        <button id="btnSharpAxe" onclick="buyWoodcutterUpgrade('sharpAxe')">
-          Scharfe Axt (150 Gold)
-        </button>
-        <button id="btnSecondWorker" onclick="buyWoodcutterUpgrade('secondWorker')">
-          Zweiter Arbeiter (300 Gold)
-        </button>
-        <button id="btnMechanicalSaw" onclick="buyWoodcutterUpgrade('mechanicalSaw')">
-          Mechanische Säge (1000 Gold)
-        </button>
-
-        <p>Aktive Boni: <span id="woodBonusInfo"></span></p>
+        <button onclick="buyWoodcutterUpgrade('sharpAxe')">Scharfe Axt (150 Gold)</button>
+        <button onclick="buyWoodcutterUpgrade('secondWorker')">Zweiter Arbeiter (300 Gold)</button>
+        <button onclick="buyWoodcutterUpgrade('mechanicalSaw')">Mechanische Säge (1000 Gold)</button>
       </div>
 
       <div id="farmPanel" class="panel detailPanel hidden">
         <h2>Bauernhof</h2>
-
         Level: <span id="farmLevel"></span><br>
         Nahrung pro Abschluss: <span id="farmPerHit"></span><br>
         Fortschritt/s: <span id="farmWorkSpeed"></span><br>
         Nahrung/s: <span id="farmFoodPerSecond"></span><br>
-
-        Zeit bis nächste Lieferung: <span id="farmTimeToNext"></span>s<br>
-        Saison-Multiplikator: <span id="farmSeasonMult"></span><br><br>
-
-        <div class="progress">
-          <div id="farmBar" class="bar"></div>
-        </div>
-
-        <h3>Level-Up</h3>
-        Kosten: <span id="farmLevelCost"></span> Gold<br>
+        Saison-Multiplikator: <span id="farmSeasonMult"></span><br>
+        <div class="progress"><div id="farmBar" class="bar"></div></div>
+        Kosten nächstes Level: <span id="farmLevelCost"></span> Gold<br>
         Effekt: <span id="farmLevelImpact"></span><br>
         <button onclick="upgradeFarmLevel()">Level erhöhen</button>
+        <h3>Upgrades</h3>
+        <button onclick="buyFarmUpgrade('betterPlow')">Besserer Pflug (200 Gold)</button>
+        <button onclick="buyFarmUpgrade('betterSeeds')">Besseres Saatgut (350 Gold)</button>
+        <button onclick="buyFarmUpgrade('secondFarmer')">Zweiter Bauer (800 Gold)</button>
+      </div>
+
+      <div id="quarryPanel" class="panel detailPanel hidden">
+        <h2>Steinbruch</h2>
+        Level: <span id="quarryLevel"></span><br>
+        Stein pro Abschluss: <span id="stonePerHit"></span><br>
+        Fortschritt/s: <span id="quarryWorkSpeed"></span><br>
+        Stein/s: <span id="stonePerSecond"></span><br>
+        Saison-Multiplikator: <span id="quarrySeasonMult"></span><br>
+        <div class="progress"><div id="quarryBar" class="bar"></div></div>
+        Kosten nächstes Level: <span id="quarryLevelCost"></span> Gold<br>
+        Effekt: <span id="quarryLevelImpact"></span><br>
+        <button onclick="upgradeQuarryLevel()">Level erhöhen</button>
+        <h3>Upgrades</h3>
+        <button onclick="buyQuarryUpgrade('ironTools')">Eisenwerkzeuge (280 Gold)</button>
+        <button onclick="buyQuarryUpgrade('blastPowder')">Sprengpulver (+40%) (700 Gold)</button>
+        <button onclick="buyQuarryUpgrade('crane')">Krananlage (1200 Gold)</button>
+      </div>
+
+      <div id="housingPanel" class="panel detailPanel hidden">
+        <h2>Wohnhäuser</h2>
+        Level: <span id="housingLevel"></span><br>
+        Bevölkerungsgrenze: <span id="housingCap"></span><br>
+        Kosten nächstes Level: <span id="housingLevelCost"></span><br>
+        <button onclick="upgradeHousingLevel()">Wohnhäuser ausbauen</button>
+
+        <h3>Dorfbewohner & Arbeit</h3>
+        Zugewiesene Arbeiter: <span id="workersAssigned">0</span><br>
+        Freie Dorfbewohner: <span id="workersFree">0</span><br>
+        Effizienz: <span id="workerEff">0%</span><br><br>
+
+        <div class="workerRow">
+          Holzfällerlager: <span id="workersWood">0</span>
+          <button onclick="assignWorker('woodcutter', -1)">-</button>
+          <button onclick="assignWorker('woodcutter', 1)">+</button>
+        </div>
+        <div class="workerRow">
+          Bauernhof: <span id="workersFarm">0</span>
+          <button onclick="assignWorker('farm', -1)">-</button>
+          <button onclick="assignWorker('farm', 1)">+</button>
+        </div>
+        <div class="workerRow">
+          Steinbruch: <span id="workersQuarry">0</span>
+          <button onclick="assignWorker('quarry', -1)">-</button>
+          <button onclick="assignWorker('quarry', 1)">+</button>
+        </div>
 
         <h3>Upgrades</h3>
-        <button id="btnFarmBetterPlow" onclick="buyFarmUpgrade('betterPlow')">
-          Besserer Pflug (200 Gold)
-        </button>
-        <button id="btnFarmBetterSeeds" onclick="buyFarmUpgrade('betterSeeds')">
-          Besseres Saatgut (350 Gold)
-        </button>
-        <button id="btnFarmSecondFarmer" onclick="buyFarmUpgrade('secondFarmer')">
-          Zweiter Bauer (800 Gold)
-        </button>
+        <button onclick="buyHousingUpgrade('granary')">Speicherhaus (+10 Cap) (550G / 500H / 120S)</button>
+        <button onclick="buyHousingUpgrade('infirmary')">Heilerhaus (+15 Cap) (900G / 400H / 250S)</button>
       </div>
 
       <div id="marketPanel" class="panel detailPanel hidden">
         <h2>Markt</h2>
-        <p>Verkaufe Ressourcen gegen Gold.</p>
+        <p>Basispreise: Holz <span id="basePriceWood"></span>, Nahrung <span id="basePriceFood"></span>, Stein <span id="basePriceStone"></span></p>
+        <p>Aktuelle Preise: Holz <span id="priceWood"></span>, Nahrung <span id="priceFood"></span>, Stein <span id="priceStone"></span></p>
+        <p>Lebenszeit-Gold verdient: <span id="lifetimeGold"></span></p>
 
         <div class="marketRow">
-          <strong>Holz</strong> (<span id="priceWood">0,5 Gold</span>)
+          <strong>Holz</strong>
           <div>
             <button onclick="sellResource('wood', 10)">10 verkaufen</button>
             <button onclick="sellResource('wood', 100)">100 verkaufen</button>
             <button onclick="sellResource('wood', 'all')">Alles verkaufen</button>
+            <button onclick="toggleAutoSell('wood')">Auto: <span id="autoWood">AUS</span></button>
           </div>
         </div>
 
         <div class="marketRow">
-          <strong>Nahrung</strong> (<span id="priceFood">0,3 Gold</span>)
+          <strong>Nahrung</strong>
           <div>
             <button onclick="sellResource('food', 10)">10 verkaufen</button>
             <button onclick="sellResource('food', 100)">100 verkaufen</button>
             <button onclick="sellResource('food', 'all')">Alles verkaufen</button>
+            <button onclick="toggleAutoSell('food')">Auto: <span id="autoFood">AUS</span></button>
           </div>
         </div>
 
         <div class="marketRow">
-          <strong>Stein</strong> (<span id="priceStone">1,0 Gold</span>)
+          <strong>Stein</strong>
           <div>
             <button onclick="sellResource('stone', 10)">10 verkaufen</button>
             <button onclick="sellResource('stone', 100)">100 verkaufen</button>
             <button onclick="sellResource('stone', 'all')">Alles verkaufen</button>
+            <button onclick="toggleAutoSell('stone')">Auto: <span id="autoStone">AUS</span></button>
           </div>
         </div>
+      </div>
+
+      <div id="questsPanel" class="panel detailPanel hidden">
+        <h2>Quests & Meilensteine</h2>
+        <div id="questsList"></div>
       </div>
     </div>
   </div>

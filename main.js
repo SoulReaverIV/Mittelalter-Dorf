@@ -1,189 +1,119 @@
-// main.js
-// Zentrale Spiellogik, Ticks & UI
-
 import {
-  TICKRATE,
-  FOOD_CONSUMPTION_PER_PERSON,
-  BASE_FARM_PER_COMPLETION,
-  BASE_FARM_WORK_SPEED,
-} from "./constants.js";
-
-import {
-  gameState,
-  farmLevels,
-  woodcutterLevels,
-  seasons,
+  OFFLINE_MAX_SECONDS,
+  PRESTIGE_WEALTH_TARGET,
+  SAVE_INTERVAL_MS,
+  SAVE_KEY,
+  SAVE_KEY_LEGACY,
   SEASON_DURATION,
+  TICKRATE,
+} from "./constants.js";
+import {
+  createInitialState,
+  farmLevels,
+  gameState,
+  housingLevels,
+  quarryLevels,
+  seasons,
+  woodcutterLevels,
 } from "./state.js";
-
 import {
-  getWoodPerCompletion,
-  getWoodWorkSpeed,
-  getWoodPerSecond,
-  tickWoodcutter,
-  upgradeWoodcutterLevel as upgradeWoodcutterLevelImpl,
-  buyWoodcutterUpgrade as buyWoodcutterUpgradeImpl,
-} from "./woodcutter.js";
-
+  buyFarmUpgrade,
+  getFarmPerCompletion,
+  getFarmWorkSpeed,
+  getFoodProductionPerSecond,
+  tickFarm,
+  upgradeFarmLevel,
+} from "./farm.js";
 import {
+  buyHousingUpgrade,
+  getFoodConsumptionPerSecond,
+  getPopulationCap,
+  tickFoodAndPopulation,
+  upgradeHousingLevel,
+} from "./housing.js";
+import {
+  buyQuarryUpgrade,
+  getQuarryWorkSpeed,
+  getStonePerCompletion,
+  getStoneProductionPerSecond,
+  tickQuarry,
+  upgradeQuarryLevel,
+} from "./quarry.js";
+import {
+  BASE_MARKET_PRICES,
   MARKET_PRICES,
+  getCurrentPrice,
   getGoldPerSecond,
   sellResource,
+  tickMarket,
 } from "./market.js";
+import {
+  changeWorkers,
+  getAssignedWorkers,
+  getFreeVillagers,
+  normalizeWorkerAssignments,
+  getVillagerEfficiency,
+} from "./villagers.js";
+import {
+  buyWoodcutterUpgrade as buyWoodcutterUpgradeImpl,
+  getWoodPerCompletion,
+  getWoodPerSecond,
+  getWoodWorkSpeed,
+  tickWoodcutter,
+  upgradeWoodcutterLevel as upgradeWoodcutterLevelImpl,
+} from "./woodcutter.js";
+import { claimQuestReward as claimQuestRewardImpl, QUESTS, updateQuestProgress } from "./quests.js";
+import { getActiveEvent, tickEvents } from "./events.js";
 
 function startGame() {
   const input = document.getElementById("villageNameInput");
+  const errorEl = document.getElementById("startError");
   const name = (input.value || "").trim();
-  if (!name) return;
 
+  if (!name) {
+    if (errorEl) errorEl.textContent = "Bitte gib zuerst einen Dorfnamen ein.";
+    return;
+  }
+
+  if (errorEl) errorEl.textContent = "";
   gameState.villageName = name;
+  if (gameState.world) gameState.world.offlineSummary = gameState.world.offlineSummary || "";
 
   document.getElementById("startScreen").classList.add("hidden");
   document.getElementById("header").classList.remove("hidden");
   document.getElementById("gameArea").classList.remove("hidden");
-
   setView("overview");
 }
 
 function setView(viewName) {
-  const allowed = ["overview", "woodcutter", "farm", "market"];
+  const allowed = [
+    "overview",
+    "woodcutter",
+    "farm",
+    "quarry",
+    "housing",
+    "market",
+    "quests",
+  ];
   if (!allowed.includes(viewName)) viewName = "overview";
 
   gameState.view = viewName;
+  document.querySelectorAll(".detailPanel").forEach((p) => p.classList.add("hidden"));
 
-  document.querySelectorAll(".detailPanel").forEach((p) =>
-    p.classList.add("hidden")
-  );
+  const panelMap = {
+    overview: "overviewPanel",
+    woodcutter: "woodcutterPanel",
+    farm: "farmPanel",
+    quarry: "quarryPanel",
+    housing: "housingPanel",
+    market: "marketPanel",
+    quests: "questsPanel",
+  };
 
-  let id = "overviewPanel";
-  if (viewName === "woodcutter") id = "woodcutterPanel";
-  if (viewName === "farm") id = "farmPanel";
-  if (viewName === "market") id = "marketPanel";
-
-  const el = document.getElementById(id);
+  const el = document.getElementById(panelMap[viewName]);
   if (el) el.classList.remove("hidden");
 
   updateUI();
-}
-
-function getFarmPerCompletion() {
-  const b = gameState.buildings.farm;
-  const levelData = farmLevels[b.level];
-  if (!levelData) return 0;
-
-  let amount = levelData.baseProduction ?? BASE_FARM_PER_COMPLETION;
-
-  if (b.upgrades.betterSeeds) amount *= 1.3;
-
-  const season = seasons[gameState.season.index];
-  if (season && typeof season.foodMult === "number") {
-    amount *= season.foodMult;
-  }
-
-  return amount;
-}
-
-function getFarmWorkSpeed() {
-  const b = gameState.buildings.farm;
-  let speed = BASE_FARM_WORK_SPEED;
-
-  if (b.upgrades.betterPlow) speed += 0.05;
-  if (b.upgrades.secondFarmer) speed += 0.1;
-
-  speed *= 1 + gameState.resources.prestige * 0.02;
-
-  return speed;
-}
-
-function getFoodProductionPerSecond() {
-  return getFarmPerCompletion() * getFarmWorkSpeed();
-}
-
-function tickFarm(dt) {
-  const b = gameState.buildings.farm;
-  const r = gameState.resources;
-
-  const speed = getFarmWorkSpeed();
-  b.workProgress += speed * dt;
-
-  while (b.workProgress >= 1) {
-    b.workProgress -= 1;
-
-    let gain = getFarmPerCompletion();
-
-    const free = r.foodStorageMax - r.food;
-    if (free <= 0) {
-      gain = 0;
-    } else if (gain > free) {
-      gain = free;
-    }
-
-    if (gain <= 0) break;
-
-    r.food += gain;
-  }
-}
-
-function upgradeFarmLevel() {
-  const b = gameState.buildings.farm;
-  const r = gameState.resources;
-
-  const nextLevel = b.level + 1;
-  const data = farmLevels[nextLevel];
-
-  if (!data) return;
-  if (r.gold < data.goldCost) return;
-
-  r.gold -= data.goldCost;
-  b.level = nextLevel;
-}
-
-function buyFarmUpgrade(key) {
-  const b = gameState.buildings.farm;
-  const r = gameState.resources;
-
-  const costs = {
-    betterPlow: 200,
-    betterSeeds: 350,
-    secondFarmer: 800,
-  };
-
-  const cost = costs[key];
-  if (!cost) return;
-  if (b.upgrades[key]) return;
-  if (r.gold < cost) return;
-
-  r.gold -= cost;
-  b.upgrades[key] = true;
-}
-
-function getFoodConsumptionPerSecond() {
-  const r = gameState.resources;
-  return r.population * FOOD_CONSUMPTION_PER_PERSON;
-}
-
-function tickFoodAndPopulation(dt) {
-  const r = gameState.resources;
-
-  const cons = getFoodConsumptionPerSecond();
-  r.food -= cons * dt;
-
-  if (r.food < 0) r.food = 0;
-  if (r.food > r.foodStorageMax) r.food = r.foodStorageMax;
-
-  if (r.food <= 0 && r.population > 0) {
-    gameState.starvationCounter += dt;
-    if (gameState.starvationCounter >= 30) {
-      r.population = Math.max(0, r.population - 1);
-      gameState.starvationCounter = 0;
-    }
-  } else {
-    gameState.starvationCounter = 0;
-  }
-}
-
-function getPopulationCap() {
-  return 50;
 }
 
 function tickSeason(dt) {
@@ -193,6 +123,117 @@ function tickSeason(dt) {
   while (s.secondsInSeason >= s.duration) {
     s.secondsInSeason -= s.duration;
     s.index = (s.index + 1) % seasons.length;
+  }
+}
+
+function asObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function mergeObject(baseObj, maybeObj) {
+  return { ...baseObj, ...asObject(maybeObj) };
+}
+
+function saveGame() {
+  gameState.meta.lastSavedAt = Date.now();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+  localStorage.removeItem(SAVE_KEY_LEGACY);
+}
+
+function simulateOfflineProgress(seconds) {
+  const r = gameState.resources;
+
+  const woodGain = getWoodPerSecond() * seconds;
+  const stoneGain = getStoneProductionPerSecond() * seconds;
+  const foodNet = (getFoodProductionPerSecond() - getFoodConsumptionPerSecond()) * seconds;
+
+  const before = {
+    wood: r.wood,
+    stone: r.stone,
+    food: r.food,
+  };
+
+  r.wood = Math.min(r.woodStorageMax, r.wood + woodGain);
+  r.stone = Math.min(r.stoneStorageMax, r.stone + stoneGain);
+  r.food = Math.max(0, Math.min(r.foodStorageMax, r.food + foodNet));
+
+  gameState.world.offlineSummary = `Offline ${Math.floor(seconds / 60)}m: +${Math.floor(
+    r.wood - before.wood
+  )} Holz, +${Math.floor(r.stone - before.stone)} Stein, ${Math.floor(
+    r.food - before.food
+  ) >= 0 ? "+" : ""}${Math.floor(r.food - before.food)} Nahrung`;
+}
+
+function loadGame() {
+  const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(SAVE_KEY_LEGACY);
+  if (!raw) return;
+
+  try {
+    const parsed = JSON.parse(raw);
+    const base = createInitialState();
+
+    Object.assign(gameState, base, parsed);
+    gameState.resources = mergeObject(base.resources, parsed.resources);
+    gameState.villagers = mergeObject(base.villagers, parsed.villagers);
+    gameState.season = mergeObject(base.season, parsed.season);
+    gameState.meta = mergeObject(base.meta, parsed.meta);
+    gameState.market = mergeObject(base.market, parsed.market);
+    gameState.market.autoSell = mergeObject(base.market.autoSell, asObject(parsed.market).autoSell);
+    gameState.labor = mergeObject(base.labor, parsed.labor);
+    gameState.world = mergeObject(base.world, parsed.world);
+    gameState.quests = mergeObject(base.quests, parsed.quests);
+    gameState.quests.completed = mergeObject(base.quests.completed, asObject(parsed.quests).completed);
+    gameState.quests.rewardClaimed = mergeObject(base.quests.rewardClaimed, asObject(parsed.quests).rewardClaimed);
+    gameState.buildings = mergeObject(base.buildings, parsed.buildings);
+    gameState.buildings = {
+      ...gameState.buildings,
+      woodcutter: {
+        ...mergeObject(base.buildings.woodcutter, asObject(parsed.buildings).woodcutter),
+        upgrades: {
+          ...base.buildings.woodcutter.upgrades,
+          ...((asObject(parsed.buildings).woodcutter || {}).upgrades || {}),
+        },
+      },
+      farm: {
+        ...mergeObject(base.buildings.farm, asObject(parsed.buildings).farm),
+        upgrades: {
+          ...base.buildings.farm.upgrades,
+          ...((asObject(parsed.buildings).farm || {}).upgrades || {}),
+        },
+      },
+      quarry: {
+        ...mergeObject(base.buildings.quarry, asObject(parsed.buildings).quarry),
+        upgrades: {
+          ...base.buildings.quarry.upgrades,
+          ...((asObject(parsed.buildings).quarry || {}).upgrades || {}),
+        },
+      },
+      housing: {
+        ...mergeObject(base.buildings.housing, asObject(parsed.buildings).housing),
+        upgrades: {
+          ...base.buildings.housing.upgrades,
+          ...((asObject(parsed.buildings).housing || {}).upgrades || {}),
+        },
+      },
+    };
+
+    normalizeWorkerAssignments();
+
+    if (gameState.meta.lastSavedAt) {
+      const seconds = Math.min(
+        OFFLINE_MAX_SECONDS,
+        Math.max(0, Math.floor((Date.now() - gameState.meta.lastSavedAt) / 1000))
+      );
+      if (seconds > 10) simulateOfflineProgress(seconds);
+    }
+
+    if (gameState.villageName) {
+      document.getElementById("startScreen").classList.add("hidden");
+      document.getElementById("header").classList.remove("hidden");
+      document.getElementById("gameArea").classList.remove("hidden");
+    }
+  } catch {
+    localStorage.removeItem(SAVE_KEY);
   }
 }
 
@@ -209,253 +250,282 @@ function formatDelta(before, after) {
   return `${before.toFixed(2)} → ${after.toFixed(2)} (${sign}${delta.toFixed(2)})`;
 }
 
+function getWealthScore() {
+  const r = gameState.resources;
+  return (
+    r.gold +
+    r.wood * getCurrentPrice("wood") +
+    r.food * getCurrentPrice("food") +
+    r.stone * getCurrentPrice("stone")
+  );
+}
+
+function doPrestigeReset() {
+  const wealth = getWealthScore();
+  const points = Math.floor(wealth / PRESTIGE_WEALTH_TARGET);
+  if (points <= 0) return;
+
+  const oldName = gameState.villageName;
+  const newState = createInitialState();
+  const prestige = gameState.resources.prestige + points;
+  const resets = gameState.meta.resetCount + 1;
+
+  Object.assign(gameState, newState);
+  gameState.villageName = oldName;
+  gameState.resources.prestige = prestige;
+  gameState.meta.resetCount = resets;
+
+  updateUI();
+  saveGame();
+}
+
+function renderQuests() {
+  const list = document.getElementById("questsList");
+  if (!list) return;
+
+  list.innerHTML = "";
+  for (const q of QUESTS) {
+    const complete = !!gameState.quests.completed[q.id];
+    const claimed = !!gameState.quests.rewardClaimed[q.id];
+    const reward = Object.entries(q.reward)
+      .map(([k, v]) => `${v} ${k}`)
+      .join(", ");
+
+    const item = document.createElement("div");
+    item.className = "questItem";
+    item.innerHTML = `
+      <strong>${q.title}</strong><br>
+      <span>${q.text}</span><br>
+      <span class="small">Belohnung: ${reward}</span><br>
+      <span>Status: ${claimed ? "Abgeholt" : complete ? "Fertig" : "Läuft"}</span>
+    `;
+
+    if (complete && !claimed) {
+      const btn = document.createElement("button");
+      btn.textContent = "Belohnung abholen";
+      btn.onclick = () => {
+        claimQuestRewardImpl(q.id);
+        updateUI();
+      };
+      item.appendChild(document.createElement("br"));
+      item.appendChild(btn);
+    }
+
+    list.appendChild(item);
+  }
+}
+
 function updateUI() {
   const header = document.getElementById("header");
   if (!header || header.classList.contains("hidden")) return;
 
   const r = gameState.resources;
-  const cap = getPopulationCap();
+  const v = gameState.villagers;
   const season = seasons[gameState.season.index];
+  const cap = getPopulationCap();
+  const wealth = getWealthScore();
+  const prestigeProgress = Math.min(1, wealth / PRESTIGE_WEALTH_TARGET);
 
-  document.getElementById("villageName").textContent =
-    gameState.villageName || "Unbenannt";
-  document.getElementById("prestige").textContent = r.prestige;
-  document.getElementById("seasonName").textContent = season.name;
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
 
-  const remaining = SEASON_DURATION - gameState.season.secondsInSeason;
-  document.getElementById("seasonTimeLeft").textContent =
-    formatSecondsToMMSS(remaining);
+  set("villageName", gameState.villageName || "Unbenannt");
+  set("prestige", r.prestige);
+  set("seasonName", season.name);
+  set("seasonTimeLeft", formatSecondsToMMSS(SEASON_DURATION - gameState.season.secondsInSeason));
 
-  const woodEl = document.getElementById("wood");
-  const woodMaxEl = document.getElementById("woodMax");
-  const foodEl = document.getElementById("food");
-  const foodMaxEl = document.getElementById("foodMax");
-  const stoneEl = document.getElementById("stone");
-  const stoneMaxEl = document.getElementById("stoneMax");
-  const goldEl = document.getElementById("gold");
-  const popEl = document.getElementById("population");
-  const popCapEl = document.getElementById("populationCap");
-
-  if (woodEl) woodEl.textContent = Math.floor(r.wood);
-  if (woodMaxEl) woodMaxEl.textContent = r.woodStorageMax;
-  if (foodEl) foodEl.textContent = Math.floor(r.food);
-  if (foodMaxEl) foodMaxEl.textContent = r.foodStorageMax;
-  if (stoneEl) stoneEl.textContent = Math.floor(r.stone);
-  if (stoneMaxEl) stoneMaxEl.textContent = r.stoneStorageMax;
-  if (goldEl) goldEl.textContent = r.gold.toFixed(1);
-  if (popEl) popEl.textContent = r.population;
-  if (popCapEl) popCapEl.textContent = cap;
+  set("wood", Math.floor(r.wood));
+  set("woodMax", r.woodStorageMax);
+  set("food", Math.floor(r.food));
+  set("foodMax", r.foodStorageMax);
+  set("stone", Math.floor(r.stone));
+  set("stoneMax", r.stoneStorageMax);
+  set("gold", r.gold.toFixed(1));
+  set("population", r.population);
+  set("populationCap", cap);
 
   const woodPerSec = getWoodPerSecond();
-  const foodProdPerSec = getFoodProductionPerSecond();
-  const foodConsPerSec = getFoodConsumptionPerSecond();
-  const foodNetPerSec = foodProdPerSec - foodConsPerSec;
-  const goldPerSec = getGoldPerSecond();
+  const foodPerSec = getFoodProductionPerSecond();
+  const stonePerSec = getStoneProductionPerSecond();
+  const foodCons = getFoodConsumptionPerSecond();
 
-  const ovWps = document.getElementById("ovWoodPerSecond");
-  const ovFps = document.getElementById("ovFoodPerSecond");
-  const ovGps = document.getElementById("ovGoldPerSecond");
-  const ovFNet = document.getElementById("ovFoodNetPerSecond");
+  set("ovWoodPerSecond", woodPerSec.toFixed(2));
+  set("ovFoodPerSecond", foodPerSec.toFixed(2));
+  set("ovStonePerSecond", stonePerSec.toFixed(2));
+  set("ovGoldPerSecond", getGoldPerSecond().toFixed(2));
+  set("ovFoodNetPerSecond", (foodPerSec - foodCons).toFixed(2));
 
-  const ovWood = document.getElementById("ovWood");
-  const ovWoodMax = document.getElementById("ovWoodMax");
-  const ovFood = document.getElementById("ovFood");
-  const ovFoodMax = document.getElementById("ovFoodMax");
-  const ovStone = document.getElementById("ovStone");
-  const ovStoneMax = document.getElementById("ovStoneMax");
-  const ovGold = document.getElementById("ovGold");
-  const ovPop = document.getElementById("ovPopulation");
-  const ovPopCap = document.getElementById("ovPopulationCap");
+  set("ovWood", Math.floor(r.wood));
+  set("ovWoodMax", r.woodStorageMax);
+  set("ovFood", Math.floor(r.food));
+  set("ovFoodMax", r.foodStorageMax);
+  set("ovStone", Math.floor(r.stone));
+  set("ovStoneMax", r.stoneStorageMax);
+  set("ovGold", r.gold.toFixed(1));
+  set("ovPopulation", r.population);
+  set("ovPopulationCap", cap);
 
-  if (ovWps) ovWps.textContent = woodPerSec.toFixed(2);
-  if (ovFps) ovFps.textContent = foodProdPerSec.toFixed(2);
-  if (ovGps) ovGps.textContent = goldPerSec.toFixed(2);
-  if (ovFNet) ovFNet.textContent = foodNetPerSec.toFixed(2);
+  set("ovWealth", wealth.toFixed(0));
+  set("ovPrestigeTarget", PRESTIGE_WEALTH_TARGET);
+  const pBar = document.getElementById("prestigeProgressBar");
+  if (pBar) pBar.style.width = `${prestigeProgress * 100}%`;
 
-  if (ovWood) ovWood.textContent = Math.floor(r.wood);
-  if (ovWoodMax) ovWoodMax.textContent = r.woodStorageMax;
-  if (ovFood) ovFood.textContent = Math.floor(r.food);
-  if (ovFoodMax) ovFoodMax.textContent = r.foodStorageMax;
-  if (ovStone) ovStone.textContent = Math.floor(r.stone);
-  if (ovStoneMax) ovStoneMax.textContent = r.stoneStorageMax;
-  if (ovGold) ovGold.textContent = r.gold.toFixed(1);
-  if (ovPop) ovPop.textContent = r.population;
-  if (ovPopCap) ovPopCap.textContent = cap;
+  const pBtn = document.getElementById("btnPrestigeReset");
+  if (pBtn) pBtn.disabled = Math.floor(wealth / PRESTIGE_WEALTH_TARGET) <= 0;
 
-  if (gameState.view === "woodcutter") {
-    const b = gameState.buildings.woodcutter;
+  set("villagerHappiness", `${v.happiness.toFixed(0)}%`);
+  set("villagerHealth", `${v.health.toFixed(0)}%`);
 
-    const lvlEl = document.getElementById("woodLevel");
-    const perHitEl = document.getElementById("woodPerHit");
-    const speedEl = document.getElementById("workSpeed");
-    const wpsEl = document.getElementById("woodPerSecond");
-    const costEl = document.getElementById("woodLevelCost");
-    const barEl = document.getElementById("workBar");
-    const timeEl = document.getElementById("timeToNext");
-    const bonusInfo = document.getElementById("woodBonusInfo");
-    const impactEl = document.getElementById("woodLevelImpact");
+  const activeEvent = getActiveEvent();
+  set("eventInfo", activeEvent ? `${activeEvent.name}: ${activeEvent.description}` : "Kein Ereignis aktiv");
 
-    const perHit = getWoodPerCompletion();
-    const speed = getWoodWorkSpeed();
+  set("offlineInfo", gameState.world.offlineSummary || "");
 
-    if (lvlEl) lvlEl.textContent = b.level;
-    if (perHitEl) perHitEl.textContent = perHit.toFixed(2);
-    if (speedEl) speedEl.textContent = speed.toFixed(2);
-    if (wpsEl) wpsEl.textContent = woodPerSec.toFixed(2);
+  const w = gameState.buildings.woodcutter;
+  set("woodLevel", w.level);
+  set("woodPerHit", getWoodPerCompletion().toFixed(2));
+  set("workSpeed", getWoodWorkSpeed().toFixed(2));
+  set("woodPerSecond", woodPerSec.toFixed(2));
+  const wNext = woodcutterLevels[w.level + 1];
+  set("woodLevelCost", wNext ? wNext.goldCost : "Max");
+  set(
+    "woodLevelImpact",
+    wNext
+      ? formatDelta(
+          getWoodPerCompletion(),
+          wNext.baseProduction * (w.upgrades.mechanicalSaw ? 2 : 1) * season.woodMult
+        )
+      : "Max-Level"
+  );
+  const wBar = document.getElementById("workBar");
+  if (wBar) wBar.style.width = `${Math.max(0, Math.min(1, w.workProgress)) * 100}%`;
 
-    const next = b.level + 1;
-    const nextData = woodcutterLevels[next];
-    if (costEl) costEl.textContent = nextData ? nextData.goldCost : "Max";
+  const f = gameState.buildings.farm;
+  set("farmLevel", f.level);
+  set("farmPerHit", getFarmPerCompletion().toFixed(2));
+  set("farmWorkSpeed", getFarmWorkSpeed().toFixed(2));
+  set("farmFoodPerSecond", foodPerSec.toFixed(2));
+  set("farmSeasonMult", `${season.foodMult.toFixed(2)}x`);
+  const fNext = farmLevels[f.level + 1];
+  set("farmLevelCost", fNext ? fNext.goldCost : "Max");
+  set(
+    "farmLevelImpact",
+    fNext
+      ? formatDelta(
+          getFarmPerCompletion(),
+          fNext.baseProduction * (f.upgrades.betterSeeds ? 1.3 : 1) * season.foodMult
+        )
+      : "Max-Level"
+  );
+  const fBar = document.getElementById("farmBar");
+  if (fBar) fBar.style.width = `${Math.max(0, Math.min(1, f.workProgress)) * 100}%`;
 
-    if (impactEl) {
-      if (!nextData) {
-        impactEl.textContent = "Max-Level erreicht";
-      } else {
-        const before = perHit;
-        const after = nextData.baseProduction * (b.upgrades.mechanicalSaw ? 2 : 1) * season.woodMult;
-        impactEl.textContent = formatDelta(before, after);
-      }
-    }
+  const q = gameState.buildings.quarry;
+  set("quarryLevel", q.level);
+  set("stonePerHit", getStonePerCompletion().toFixed(2));
+  set("quarryWorkSpeed", getQuarryWorkSpeed().toFixed(2));
+  set("stonePerSecond", stonePerSec.toFixed(2));
+  set("quarrySeasonMult", `${season.stoneMult.toFixed(2)}x`);
+  const qNext = quarryLevels[q.level + 1];
+  set("quarryLevelCost", qNext ? qNext.goldCost : "Max");
+  set(
+    "quarryLevelImpact",
+    qNext
+      ? formatDelta(
+          getStonePerCompletion(),
+          qNext.baseProduction * (q.upgrades.blastPowder ? 1.4 : 1) * season.stoneMult
+        )
+      : "Max-Level"
+  );
+  const qBar = document.getElementById("quarryBar");
+  if (qBar) qBar.style.width = `${Math.max(0, Math.min(1, q.workProgress)) * 100}%`;
 
-    if (barEl) {
-      const progress = Math.max(0, Math.min(1, b.workProgress)) * 100;
-      barEl.style.width = progress + "%";
-    }
+  const h = gameState.buildings.housing;
+  set("housingLevel", h.level);
+  set("housingCap", cap);
+  const hNext = housingLevels[h.level + 1];
+  set("housingLevelCost", hNext ? `${hNext.goldCost} Gold, ${hNext.woodCost} Holz, ${hNext.stoneCost} Stein` : "Max");
 
-    if (timeEl) {
-      const remainingWork = Math.max(0, 1 - b.workProgress);
-      const t = speed > 0 ? (remainingWork / speed).toFixed(1) : "–";
-      timeEl.textContent = t;
-    }
+  set("priceWood", `${getCurrentPrice("wood").toFixed(2)} Gold`);
+  set("priceFood", `${getCurrentPrice("food").toFixed(2)} Gold`);
+  set("priceStone", `${getCurrentPrice("stone").toFixed(2)} Gold`);
+  set("lifetimeGold", gameState.meta.lifetimeGoldEarned.toFixed(0));
+  set("autoWood", gameState.market.autoSell.wood ? "AN" : "AUS");
+  set("autoFood", gameState.market.autoSell.food ? "AN" : "AUS");
+  set("autoStone", gameState.market.autoSell.stone ? "AN" : "AUS");
+  const basePrices = MARKET_PRICES || BASE_MARKET_PRICES;
+  set("basePriceWood", basePrices.wood.toFixed(2));
+  set("basePriceFood", basePrices.food.toFixed(2));
+  set("basePriceStone", basePrices.stone.toFixed(2));
 
-    if (bonusInfo) {
-      const u = b.upgrades;
-      const bonus = [];
-      if (u.sharpAxe) bonus.push("Scharfe Axt: +0,05 Fortschritt/s");
-      if (u.secondWorker) bonus.push("Zweiter Arbeiter: +0,10 Fortschritt/s");
-      if (u.mechanicalSaw) bonus.push("Mechanische Säge: x2 Holz pro Abschluss");
-      bonusInfo.textContent = bonus.length ? bonus.join(" | ") : "Keine Boni aktiv";
-    }
+  set("workersAssigned", getAssignedWorkers());
+  set("workersFree", getFreeVillagers());
+  set("workersWood", gameState.labor.woodcutter);
+  set("workersFarm", gameState.labor.farm);
+  set("workersQuarry", gameState.labor.quarry);
+  set("workerEff", `${(getVillagerEfficiency() * 100).toFixed(0)}%`);
 
-    const btnAxe = document.getElementById("btnSharpAxe");
-    const btnWorker = document.getElementById("btnSecondWorker");
-    const btnSaw = document.getElementById("btnMechanicalSaw");
-    const u = b.upgrades;
+  const notes = [
+    `Resets: ${gameState.meta.resetCount}`,
+    `Nahrungsverbrauch: ${foodCons.toFixed(2)}/s`,
+    `Freie Dorfbewohner: ${getFreeVillagers()}`,
+  ];
+  set("statusNotes", notes.join(" | "));
 
-    if (btnAxe) btnAxe.disabled = u.sharpAxe;
-    if (btnWorker) btnWorker.disabled = u.secondWorker;
-    if (btnSaw) btnSaw.disabled = u.mechanicalSaw;
-  }
+  renderQuests();
 
-  if (gameState.view === "farm") {
-    const b = gameState.buildings.farm;
-    const seasonData = seasons[gameState.season.index];
-
-    const lvlEl = document.getElementById("farmLevel");
-    const perHitEl = document.getElementById("farmPerHit");
-    const speedEl = document.getElementById("farmWorkSpeed");
-    const fpsEl = document.getElementById("farmFoodPerSecond");
-    const timeEl = document.getElementById("farmTimeToNext");
-    const seasonMultEl = document.getElementById("farmSeasonMult");
-    const costEl = document.getElementById("farmLevelCost");
-    const barFarm = document.getElementById("farmBar");
-    const impactEl = document.getElementById("farmLevelImpact");
-
-    const perHit = getFarmPerCompletion();
-    const speed = getFarmWorkSpeed();
-    const fps = getFoodProductionPerSecond();
-
-    if (lvlEl) lvlEl.textContent = b.level;
-    if (perHitEl) perHitEl.textContent = perHit.toFixed(2);
-    if (speedEl) speedEl.textContent = speed.toFixed(2);
-    if (fpsEl) fpsEl.textContent = fps.toFixed(2);
-
-    if (timeEl) {
-      const remainingWork = Math.max(0, 1 - b.workProgress);
-      const t = speed > 0 ? (remainingWork / speed).toFixed(1) : "–";
-      timeEl.textContent = t;
-    }
-
-    if (seasonMultEl) {
-      seasonMultEl.textContent = seasonData.foodMult.toFixed(2) + "x";
-    }
-
-    const nextLevel = b.level + 1;
-    const nextData = farmLevels[nextLevel];
-    if (costEl) costEl.textContent = nextData ? nextData.goldCost : "Max";
-
-    if (impactEl) {
-      if (!nextData) {
-        impactEl.textContent = "Max-Level erreicht";
-      } else {
-        const before = perHit;
-        const after = nextData.baseProduction * (b.upgrades.betterSeeds ? 1.3 : 1) * seasonData.foodMult;
-        impactEl.textContent = formatDelta(before, after);
-      }
-    }
-
-    if (barFarm) {
-      const progress = Math.max(0, Math.min(1, b.workProgress)) * 100;
-      barFarm.style.width = progress + "%";
-    }
-
-    const btnPlow = document.getElementById("btnFarmBetterPlow");
-    const btnSeeds = document.getElementById("btnFarmBetterSeeds");
-    const btnSecond = document.getElementById("btnFarmSecondFarmer");
-
-    if (btnPlow) btnPlow.disabled = b.upgrades.betterPlow;
-    if (btnSeeds) btnSeeds.disabled = b.upgrades.betterSeeds;
-    if (btnSecond) btnSecond.disabled = b.upgrades.secondFarmer;
-  }
-
-  if (gameState.view === "market") {
-    const setPrice = (id, price) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = `${price.toFixed(1)} Gold`;
-    };
-    setPrice("priceWood", MARKET_PRICES.wood);
-    setPrice("priceFood", MARKET_PRICES.food);
-    setPrice("priceStone", MARKET_PRICES.stone);
-  }
 }
 
 function gameTick(dt) {
+  normalizeWorkerAssignments();
   tickWoodcutter(dt);
   tickFarm(dt);
-  tickFoodAndPopulation(dt);
+  tickQuarry(dt);
+  tickFoodAndPopulation(dt, getFoodProductionPerSecond());
+  tickMarket(dt);
   tickSeason(dt);
+  tickEvents(dt);
+  updateQuestProgress();
   updateUI();
 }
 
-setInterval(() => {
-  const dt = TICKRATE / 1000;
-  gameTick(dt);
-}, TICKRATE);
-
 window.startGame = startGame;
 window.setView = setView;
-
-window.upgradeWoodcutterLevel = function () {
-  upgradeWoodcutterLevelImpl();
+window.upgradeWoodcutterLevel = () => { upgradeWoodcutterLevelImpl(); updateUI(); };
+window.buyWoodcutterUpgrade = (key) => { buyWoodcutterUpgradeImpl(key); updateUI(); };
+window.upgradeFarmLevel = () => { upgradeFarmLevel(); updateUI(); };
+window.buyFarmUpgrade = (key) => { buyFarmUpgrade(key); updateUI(); };
+window.upgradeQuarryLevel = () => { upgradeQuarryLevel(); updateUI(); };
+window.buyQuarryUpgrade = (key) => { buyQuarryUpgrade(key); updateUI(); };
+window.upgradeHousingLevel = () => { upgradeHousingLevel(); updateUI(); };
+window.buyHousingUpgrade = (key) => { buyHousingUpgrade(key); updateUI(); };
+window.sellResource = (resourceKey, amount) => { sellResource(resourceKey, amount); updateUI(); };
+window.assignWorker = (buildingKey, delta) => {
+  changeWorkers(buildingKey, Number(delta));
   updateUI();
 };
-
-window.buyWoodcutterUpgrade = function (key) {
-  buyWoodcutterUpgradeImpl(key);
+window.toggleAutoSell = (resourceKey) => {
+  const m = gameState.market.autoSell;
+  if (typeof m[resourceKey] !== "boolean") return;
+  m[resourceKey] = !m[resourceKey];
   updateUI();
 };
-
-window.upgradeFarmLevel = function () {
-  upgradeFarmLevel();
+window.doPrestigeReset = doPrestigeReset;
+window.claimQuestReward = (id) => {
+  claimQuestRewardImpl(id);
   updateUI();
 };
-
-window.buyFarmUpgrade = function (key) {
-  buyFarmUpgrade(key);
-  updateUI();
+window.manualSave = () => {
+  saveGame();
+  const saveInfo = document.getElementById("saveInfo");
+  if (saveInfo) saveInfo.textContent = `Gespeichert: ${new Date().toLocaleTimeString()}`;
 };
 
-window.sellResource = function (resourceKey, amount) {
-  sellResource(resourceKey, amount);
-  updateUI();
-};
+loadGame();
+updateQuestProgress();
+updateUI();
+
+setInterval(() => gameTick(TICKRATE / 1000), TICKRATE);
+setInterval(saveGame, SAVE_INTERVAL_MS);
