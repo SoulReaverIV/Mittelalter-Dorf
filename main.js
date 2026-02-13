@@ -85,6 +85,25 @@ function startGame() {
   document.getElementById("gameArea").classList.remove("hidden");
   setView("overview");
 }
+// Früh bereitstellen, auch falls späterer Modulcode fehlschlägt
+window.startGame = startGame;
+
+function setupMainStartBindings() {
+  const btn = document.getElementById("startButton");
+  const input = document.getElementById("villageNameInput");
+
+  if (btn && !btn.dataset.mainBound) {
+    btn.addEventListener("click", startGame);
+    btn.dataset.mainBound = "1";
+  }
+
+  if (input && !input.dataset.mainBound) {
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") startGame();
+    });
+    input.dataset.mainBound = "1";
+  }
+}
 
 function setupStartScreenBindings() {
   const btn = document.getElementById("startButton");
@@ -476,7 +495,6 @@ function gameTick(dt) {
   updateUI();
 }
 
-window.startGame = startGame;
 window.setView = setView;
 window.manualSave = manualSave;
 window.doPrestigeReset = doPrestigeReset;
@@ -501,7 +519,7 @@ window.toggleAutoSell = (resourceKey) => {
 };
 
 
-setupStartScreenBindings();
+setupMainStartBindings();
 loadGame();
 updateQuestProgress();
 updateUI();
