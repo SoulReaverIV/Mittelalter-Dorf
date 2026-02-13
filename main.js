@@ -32,15 +32,21 @@ import {
   upgradeHousingLevel,
 } from "./housing.js";
 import {
-  buyQuarryUpgrade,
-  getQuarryWorkSpeed,
-  getStonePerCompletion,
-  getStoneProductionPerSecond,
-  tickQuarry,
-  upgradeQuarryLevel,
-} from "./quarry.js";
+  getFarmPerCompletion,
+  getFarmWorkSpeed,
+  getFoodProductionPerSecond,
+  tickFarm,
+  upgradeFarmLevel as upgradeFarmLevelImpl,
+  buyFarmUpgrade as buyFarmUpgradeImpl,
+} from "./farm.js";
+
 import {
-  BASE_MARKET_PRICES,
+  getFoodConsumptionPerSecond,
+  tickFoodAndPopulation,
+  getPopulationCap,
+} from "./housing.js";
+
+import {
   MARKET_PRICES,
   getCurrentPrice,
   getGoldPerSecond,
@@ -123,117 +129,6 @@ function tickSeason(dt) {
   while (s.secondsInSeason >= s.duration) {
     s.secondsInSeason -= s.duration;
     s.index = (s.index + 1) % seasons.length;
-  }
-}
-
-function asObject(value) {
-  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
-}
-
-function mergeObject(baseObj, maybeObj) {
-  return { ...baseObj, ...asObject(maybeObj) };
-}
-
-function saveGame() {
-  gameState.meta.lastSavedAt = Date.now();
-  localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
-  localStorage.removeItem(SAVE_KEY_LEGACY);
-}
-
-function simulateOfflineProgress(seconds) {
-  const r = gameState.resources;
-
-  const woodGain = getWoodPerSecond() * seconds;
-  const stoneGain = getStoneProductionPerSecond() * seconds;
-  const foodNet = (getFoodProductionPerSecond() - getFoodConsumptionPerSecond()) * seconds;
-
-  const before = {
-    wood: r.wood,
-    stone: r.stone,
-    food: r.food,
-  };
-
-  r.wood = Math.min(r.woodStorageMax, r.wood + woodGain);
-  r.stone = Math.min(r.stoneStorageMax, r.stone + stoneGain);
-  r.food = Math.max(0, Math.min(r.foodStorageMax, r.food + foodNet));
-
-  gameState.world.offlineSummary = `Offline ${Math.floor(seconds / 60)}m: +${Math.floor(
-    r.wood - before.wood
-  )} Holz, +${Math.floor(r.stone - before.stone)} Stein, ${Math.floor(
-    r.food - before.food
-  ) >= 0 ? "+" : ""}${Math.floor(r.food - before.food)} Nahrung`;
-}
-
-function loadGame() {
-  const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(SAVE_KEY_LEGACY);
-  if (!raw) return;
-
-  try {
-    const parsed = JSON.parse(raw);
-    const base = createInitialState();
-
-    Object.assign(gameState, base, parsed);
-    gameState.resources = mergeObject(base.resources, parsed.resources);
-    gameState.villagers = mergeObject(base.villagers, parsed.villagers);
-    gameState.season = mergeObject(base.season, parsed.season);
-    gameState.meta = mergeObject(base.meta, parsed.meta);
-    gameState.market = mergeObject(base.market, parsed.market);
-    gameState.market.autoSell = mergeObject(base.market.autoSell, asObject(parsed.market).autoSell);
-    gameState.labor = mergeObject(base.labor, parsed.labor);
-    gameState.world = mergeObject(base.world, parsed.world);
-    gameState.quests = mergeObject(base.quests, parsed.quests);
-    gameState.quests.completed = mergeObject(base.quests.completed, asObject(parsed.quests).completed);
-    gameState.quests.rewardClaimed = mergeObject(base.quests.rewardClaimed, asObject(parsed.quests).rewardClaimed);
-    gameState.buildings = mergeObject(base.buildings, parsed.buildings);
-    gameState.buildings = {
-      ...gameState.buildings,
-      woodcutter: {
-        ...mergeObject(base.buildings.woodcutter, asObject(parsed.buildings).woodcutter),
-        upgrades: {
-          ...base.buildings.woodcutter.upgrades,
-          ...((asObject(parsed.buildings).woodcutter || {}).upgrades || {}),
-        },
-      },
-      farm: {
-        ...mergeObject(base.buildings.farm, asObject(parsed.buildings).farm),
-        upgrades: {
-          ...base.buildings.farm.upgrades,
-          ...((asObject(parsed.buildings).farm || {}).upgrades || {}),
-        },
-      },
-      quarry: {
-        ...mergeObject(base.buildings.quarry, asObject(parsed.buildings).quarry),
-        upgrades: {
-          ...base.buildings.quarry.upgrades,
-          ...((asObject(parsed.buildings).quarry || {}).upgrades || {}),
-        },
-      },
-      housing: {
-        ...mergeObject(base.buildings.housing, asObject(parsed.buildings).housing),
-        upgrades: {
-          ...base.buildings.housing.upgrades,
-          ...((asObject(parsed.buildings).housing || {}).upgrades || {}),
-        },
-      },
-    };
-
-    normalizeWorkerAssignments();
-
-    if (gameState.meta.lastSavedAt) {
-      const seconds = Math.min(
-        OFFLINE_MAX_SECONDS,
-        Math.max(0, Math.floor((Date.now() - gameState.meta.lastSavedAt) / 1000))
-      );
-      if (seconds > 10) simulateOfflineProgress(seconds);
-    }
-
-    if (gameState.villageName) {
-      document.getElementById("startScreen").classList.add("hidden");
-      document.getElementById("header").classList.remove("hidden");
-      document.getElementById("gameArea").classList.remove("hidden");
-    }
-  } catch {
-    localStorage.removeItem(SAVE_KEY);
   }
 }
 
@@ -512,15 +407,15 @@ window.toggleAutoSell = (resourceKey) => {
   m[resourceKey] = !m[resourceKey];
   updateUI();
 };
-window.doPrestigeReset = doPrestigeReset;
-window.claimQuestReward = (id) => {
-  claimQuestRewardImpl(id);
+
+window.upgradeFarmLevel = function () {
+  upgradeFarmLevelImpl();
   updateUI();
 };
-window.manualSave = () => {
-  saveGame();
-  const saveInfo = document.getElementById("saveInfo");
-  if (saveInfo) saveInfo.textContent = `Gespeichert: ${new Date().toLocaleTimeString()}`;
+
+window.buyFarmUpgrade = function (key) {
+  buyFarmUpgradeImpl(key);
+  updateUI();
 };
 
 loadGame();
