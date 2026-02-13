@@ -17,12 +17,12 @@ import {
   woodcutterLevels,
 } from "./state.js";
 import {
-  buyFarmUpgrade,
   getFarmPerCompletion,
   getFarmWorkSpeed,
   getFoodProductionPerSecond,
   tickFarm,
-  upgradeFarmLevel,
+  upgradeFarmLevel as upgradeFarmLevelImpl,
+  buyFarmUpgrade as buyFarmUpgradeImpl,
 } from "./farm.js";
 import {
   buyHousingUpgrade,
@@ -31,20 +31,15 @@ import {
   tickFoodAndPopulation,
   upgradeHousingLevel,
 } from "./housing.js";
-import {
-  getFarmPerCompletion,
-  getFarmWorkSpeed,
-  getFoodProductionPerSecond,
-  tickFarm,
-  upgradeFarmLevel as upgradeFarmLevelImpl,
-  buyFarmUpgrade as buyFarmUpgradeImpl,
-} from "./farm.js";
 
 import {
-  getFoodConsumptionPerSecond,
-  tickFoodAndPopulation,
-  getPopulationCap,
-} from "./housing.js";
+  buyQuarryUpgrade,
+  getQuarryWorkSpeed,
+  getStonePerCompletion,
+  getStoneProductionPerSecond,
+  tickQuarry,
+  upgradeQuarryLevel,
+} from "./quarry.js";
 
 import {
   MARKET_PRICES,
@@ -89,6 +84,23 @@ function startGame() {
   document.getElementById("header").classList.remove("hidden");
   document.getElementById("gameArea").classList.remove("hidden");
   setView("overview");
+}
+
+function setupStartScreenBindings() {
+  const btn = document.getElementById("startButton");
+  const input = document.getElementById("villageNameInput");
+
+  if (btn && !btn.dataset.bound) {
+    btn.addEventListener("click", startGame);
+    btn.dataset.bound = "1";
+  }
+
+  if (input && !input.dataset.bound) {
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") startGame();
+    });
+    input.dataset.bound = "1";
+  }
 }
 
 function setView(viewName) {
@@ -207,6 +219,84 @@ function renderQuests() {
     }
 
     list.appendChild(item);
+  }
+}
+
+function saveGame() {
+  gameState.meta.lastSavedAt = Date.now();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+}
+
+function manualSave() {
+  saveGame();
+  const info = document.getElementById("saveInfo");
+  if (info) info.textContent = `Gespeichert: ${new Date().toLocaleTimeString()}`;
+}
+
+function loadGame() {
+  const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(SAVE_KEY_LEGACY);
+  if (!raw) return;
+
+  try {
+    const loaded = JSON.parse(raw);
+    const fresh = createInitialState();
+
+    Object.assign(gameState, fresh, loaded);
+    gameState.resources = { ...fresh.resources, ...(loaded.resources || {}) };
+    gameState.villagers = { ...fresh.villagers, ...(loaded.villagers || {}) };
+    gameState.season = { ...fresh.season, ...(loaded.season || {}) };
+    gameState.meta = { ...fresh.meta, ...(loaded.meta || {}) };
+    gameState.market = {
+      ...fresh.market,
+      ...(loaded.market || {}),
+      autoSell: { ...fresh.market.autoSell, ...((loaded.market || {}).autoSell || {}) },
+    };
+    gameState.labor = { ...fresh.labor, ...(loaded.labor || {}) };
+    gameState.world = { ...fresh.world, ...(loaded.world || {}) };
+    gameState.quests = {
+      ...fresh.quests,
+      ...(loaded.quests || {}),
+      completed: { ...fresh.quests.completed, ...((loaded.quests || {}).completed || {}) },
+      rewardClaimed: { ...fresh.quests.rewardClaimed, ...((loaded.quests || {}).rewardClaimed || {}) },
+    };
+    gameState.buildings = {
+      ...fresh.buildings,
+      ...(loaded.buildings || {}),
+      woodcutter: {
+        ...fresh.buildings.woodcutter,
+        ...((loaded.buildings || {}).woodcutter || {}),
+        upgrades: {
+          ...fresh.buildings.woodcutter.upgrades,
+          ...(((loaded.buildings || {}).woodcutter || {}).upgrades || {}),
+        },
+      },
+      farm: {
+        ...fresh.buildings.farm,
+        ...((loaded.buildings || {}).farm || {}),
+        upgrades: {
+          ...fresh.buildings.farm.upgrades,
+          ...(((loaded.buildings || {}).farm || {}).upgrades || {}),
+        },
+      },
+      quarry: {
+        ...fresh.buildings.quarry,
+        ...((loaded.buildings || {}).quarry || {}),
+        upgrades: {
+          ...fresh.buildings.quarry.upgrades,
+          ...(((loaded.buildings || {}).quarry || {}).upgrades || {}),
+        },
+      },
+      housing: {
+        ...fresh.buildings.housing,
+        ...((loaded.buildings || {}).housing || {}),
+        upgrades: {
+          ...fresh.buildings.housing.upgrades,
+          ...(((loaded.buildings || {}).housing || {}).upgrades || {}),
+        },
+      },
+    };
+  } catch (err) {
+    console.error("Save konnte nicht geladen werden", err);
   }
 }
 
@@ -378,7 +468,7 @@ function gameTick(dt) {
   tickWoodcutter(dt);
   tickFarm(dt);
   tickQuarry(dt);
-  tickFoodAndPopulation(dt, getFoodProductionPerSecond());
+  tickFoodAndPopulation(dt);
   tickMarket(dt);
   tickSeason(dt);
   tickEvents(dt);
@@ -388,10 +478,12 @@ function gameTick(dt) {
 
 window.startGame = startGame;
 window.setView = setView;
+window.manualSave = manualSave;
+window.doPrestigeReset = doPrestigeReset;
 window.upgradeWoodcutterLevel = () => { upgradeWoodcutterLevelImpl(); updateUI(); };
 window.buyWoodcutterUpgrade = (key) => { buyWoodcutterUpgradeImpl(key); updateUI(); };
-window.upgradeFarmLevel = () => { upgradeFarmLevel(); updateUI(); };
-window.buyFarmUpgrade = (key) => { buyFarmUpgrade(key); updateUI(); };
+window.upgradeFarmLevel = () => { upgradeFarmLevelImpl(); updateUI(); };
+window.buyFarmUpgrade = (key) => { buyFarmUpgradeImpl(key); updateUI(); };
 window.upgradeQuarryLevel = () => { upgradeQuarryLevel(); updateUI(); };
 window.buyQuarryUpgrade = (key) => { buyQuarryUpgrade(key); updateUI(); };
 window.upgradeHousingLevel = () => { upgradeHousingLevel(); updateUI(); };
@@ -408,16 +500,8 @@ window.toggleAutoSell = (resourceKey) => {
   updateUI();
 };
 
-window.upgradeFarmLevel = function () {
-  upgradeFarmLevelImpl();
-  updateUI();
-};
 
-window.buyFarmUpgrade = function (key) {
-  buyFarmUpgradeImpl(key);
-  updateUI();
-};
-
+setupStartScreenBindings();
 loadGame();
 updateQuestProgress();
 updateUI();
