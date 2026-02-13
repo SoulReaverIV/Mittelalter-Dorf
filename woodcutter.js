@@ -10,6 +10,7 @@ import {
   woodcutterLevels,
   seasons,
 } from "./state.js";
+import { getStaffingFactor } from "./villagers.js";
 
 // ===============================
 // Hilfsfunktionen: Produktion
@@ -49,6 +50,8 @@ export function getWoodWorkSpeed() {
 
   // Prestige als globaler Produktionsbonus
   speed *= 1 + gameState.resources.prestige * 0.02;
+
+  speed *= getStaffingFactor("woodcutter");
 
   return speed;
 }
